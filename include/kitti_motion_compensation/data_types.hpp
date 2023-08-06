@@ -14,7 +14,7 @@ namespace kmc {
 
 // Note that this is a pointcloud *WITH* itensity values, not just a set of 3D
 // points
-typedef Eigen::Matrix<double, -1, 4> PointCloud;
+typedef Eigen::MatrixX4d Pointcloud;
 
 // Yea I know I know, I would have liked to use some fancy official time
 // tracking structure, but assuming there are no recordings that cross midnight,
@@ -36,12 +36,12 @@ struct Oxts {
   double vu;
 };
 
-struct LidarCloud {
+struct LidarScan {
   Time stamp_start;
   Time stamp_middle; // camera trigger time
   Time stamp_end;
 
-  PointCloud cloud;
+  Pointcloud cloud;
 };
 
 struct Image {
@@ -60,12 +60,12 @@ struct Images {
 //** data structures with some logic **//
 
 struct Frame {
-  Frame(Oxts odometry, LidarCloud cloud,
+  Frame(Oxts odometry, LidarScan scan,
         std::optional<Images> images = std::nullopt)
-      : odometry_{odometry}, cloud_{cloud}, images_{images} {}
+      : odometry_{odometry}, scan_{scan}, images_{images} {}
 
   Oxts odometry_;
-  LidarCloud cloud_;
+  LidarScan scan_;
 
   // for people who just want to process the pointclouds, they don't need to
   // load the images, but there are probably enough times where someone will
