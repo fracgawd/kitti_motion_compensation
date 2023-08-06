@@ -7,10 +7,12 @@ add_compile_options(-Wall -Wextra -pedantic -Werror -Wl,--fatal-warnings)
 
 # find packages we need 
 find_package(Eigen3 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # set sources
 include_directories(include
     ${EIGEN3_INCLUDE_DIR}
+    ${OpenCV_INCLUDE_DIRS} 
     )
 
 set(SRC_FILES 
