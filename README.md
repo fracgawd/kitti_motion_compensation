@@ -8,6 +8,4 @@
 
 ## Packages to Install 
 
-    sudo apt install libeigen3-dev
-
-
+    sudo apt install libgtest-dev libeigen3-dev libopencv-dev

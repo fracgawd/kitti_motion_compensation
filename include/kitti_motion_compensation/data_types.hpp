@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <filesystem>
 #include <optional>
 
 #include <Eigen/Dense>
@@ -16,6 +17,8 @@ namespace kmc {
 typedef Eigen::Matrix<double, -1, 4> PointCloud;
 
 typedef std::chrono::system_clock::time_point Time;
+
+typedef std::filesystem::path Path;
 
 //** structs **//
 
@@ -52,7 +55,7 @@ struct Images {
 
 //** data structures with some logic **//
 
-class Frame {
+struct Frame {
   Frame(Oxts odometry, LidarCloud cloud,
         std::optional<Images> images = std::nullopt)
       : odometry_{odometry}, cloud_{cloud}, images_{images} {}
