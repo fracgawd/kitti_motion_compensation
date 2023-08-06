@@ -17,10 +17,11 @@ include_directories(include
     )
 
 set(SRC_FILES 
+    src/${PROJECT_NAME}/utils.cpp
     src/${PROJECT_NAME}/data_io.cpp
     )
 
-# compile stuff the core library #
+# compile stuff in the core library #
 add_library(
     ${PROJECT_NAME}_lib
     SHARED
