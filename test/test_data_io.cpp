@@ -11,7 +11,7 @@ TEST(DataIoTest, LoadOdometryProperly) {
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
 
   kmc::Oxts const odometry{frame.odometry_};
-
+  ASSERT_EQ(odometry.stamp, 47072.349659964);
   ASSERT_EQ(odometry.vf, 3.5147680214713);
   ASSERT_EQ(odometry.vl, 0.037625160413037);
   ASSERT_EQ(odometry.vu, -0.03878884255623);

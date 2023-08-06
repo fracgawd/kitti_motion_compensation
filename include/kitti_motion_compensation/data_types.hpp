@@ -16,7 +16,11 @@ namespace kmc {
 // points
 typedef Eigen::Matrix<double, -1, 4> PointCloud;
 
-typedef std::chrono::system_clock::time_point Time;
+// Yea I know I know, I would have liked to use some fancy official time
+// tracking structure, but assuming there are no recordings that cross midnight,
+// and that microsecond preciscion is enough, than we can just use double -_-
+// I am pretty sure I will regret this decision later :()
+typedef double Time;
 
 typedef std::filesystem::path Path;
 

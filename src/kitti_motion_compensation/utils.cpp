@@ -27,4 +27,13 @@ std::vector<std::string> TokenizeString(std::string raw_string) {
   return tokenized_string;
 }
 
+double MmHhSsToSeconds(std::string const mm_hh_ss) {
+  // times in the timestamp files look like: 13:04:34.309763177
+  int const hours{std::stoi(mm_hh_ss.substr(0, 2))};
+  int const minutes{std::stoi(mm_hh_ss.substr(3, 5))};
+  double const seconds{std::stod(mm_hh_ss.substr(6, 18))};
+
+  return static_cast<double>((60 * hours * 60) + (minutes * 60)) + seconds;
+}
+
 } // namespace kmc
