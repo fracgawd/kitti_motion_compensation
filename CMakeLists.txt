@@ -19,6 +19,7 @@ include_directories(include
 set(SRC_FILES 
     src/${PROJECT_NAME}/utils.cpp
     src/${PROJECT_NAME}/data_io.cpp
+    src/${PROJECT_NAME}/motion_compensation.cpp
     )
 
 # compile stuff in the core library #
@@ -45,3 +46,8 @@ add_executable(test_data_io test/test_data_io.cpp)
 target_include_directories(test_data_io PRIVATE ${GTEST_INCLUDE_DIRS})
 # TODO(jack): remove opencv_libs
 target_link_libraries(test_data_io PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
+
+add_executable(test_motion_compensation test/test_motion_compensation.cpp)
+target_include_directories(test_motion_compensation PRIVATE ${GTEST_INCLUDE_DIRS})
+# TODO(jack): remove opencv_libs
+target_link_libraries(test_motion_compensation PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
