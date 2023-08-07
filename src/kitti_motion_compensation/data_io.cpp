@@ -148,11 +148,11 @@ Image LoadImage(Path const folder, std::string const camera,
   return Image{time, image};
 }
 
-Images LoadImages(Path folder, size_t frame_id) {
-  Image img_00{LoadImage(folder, "image_00", frame_id)};
-  Image img_01{LoadImage(folder, "image_01", frame_id)};
-  Image img_02{LoadImage(folder, "image_02", frame_id)};
-  Image img_03{LoadImage(folder, "image_03", frame_id)};
+Images LoadImages(Path const folder, size_t const frame_id) {
+  Image const img_00{LoadImage(folder, "image_00", frame_id)};
+  Image const img_01{LoadImage(folder, "image_01", frame_id)};
+  Image const img_02{LoadImage(folder, "image_02", frame_id)};
+  Image const img_03{LoadImage(folder, "image_03", frame_id)};
 
   return Images{img_00, img_01, img_02, img_03};
 }
