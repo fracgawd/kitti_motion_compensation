@@ -65,10 +65,24 @@ TEST(DataIoTest, LoadImagesOptional) {
   kmc::Frame const frame_with_images{
       kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
 
-  ASSERT_TRUE(frame_without_images.images_.has_value());
+  ASSERT_TRUE(frame_with_images.images_.has_value());
 }
 
-TEST(DataIoTest, LoadImagesProperly) { ASSERT_TRUE(false); }
+TEST(DataIoTest, LoadImagesProperly) {
+  kmc::Path const data_folder{
+      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  size_t const frame_id{0};
+
+  kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id, true)};
+
+  kmc::Images const images{frame.images_.value()};
+  ASSERT_EQ(images.image_00.image.channels(),
+            1); // grayscale image has one channel
+  ASSERT_EQ(images.image_02.image.channels(),
+            3);                                // rgb image has three channels
+  ASSERT_EQ(images.image_00.image.rows, 375);  // height
+  ASSERT_EQ(images.image_00.image.cols, 1242); // width
+}
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);

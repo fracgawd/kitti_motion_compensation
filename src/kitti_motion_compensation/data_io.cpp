@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <opencv2/opencv.hpp>
+
 #include "kitti_motion_compensation/utils.hpp"
 
 namespace kmc {
@@ -91,7 +93,7 @@ Pointcloud LoadPointcloud(Path const pointcloud_file) {
 
 LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
   // load the time stamps - start, middle and end of the scan - cameras are
-  // triggered mechanically at the middle of the scan
+  // triggered at the middle of the scan
   Path const start_timestamp_file(folder /
                                   Path("velodyne_points/timestamps_start.txt"));
   Path const middle_timestamp_file(folder /
@@ -112,18 +114,64 @@ LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
   return LidarScan{start_time, middle_time, end_time, pointcloud};
 }
 
+Image LoadImage(Path const folder, std::string const camera,
+                size_t const frame_id) {
+  // Note: interesting that for the test sequence image_00/01 and image_02/03
+  // are seperated by a consitent 0.01 seconds to 0.005 second. For example for
+  // frame_id=0 the timestamps are as follows:
+  //
+  //  image_00: 47072.351950336
+  //  image_01: 47072.351951104
+  //  image_02: 47072.345808896
+  //  image_03: 47072.345323776
+  //
+  // TODO(jack): investigate if assuming all images were at same timestamp
+  // introduces bias
+
+  Path const timestamp_file(folder / Path(camera + "/timestamps.txt"));
+  Time const time{LoadTimeStamp(timestamp_file, frame_id)};
+
+  Path const image_file(folder / Path(camera + "/data/" +
+                                      IdToZeroPaddedString(frame_id) + ".png"));
+  cv::Mat image;
+  if (camera == "image_00" or camera == "image_01") {
+    image = cv::imread(image_file, cv::IMREAD_GRAYSCALE);
+  } else {
+    image = cv::imread(image_file, cv::IMREAD_COLOR);
+  }
+
+  if (image.empty()) {
+    std::cout << "Failed to load image: " << image_file << '\n';
+    exit(0);
+  }
+
+  return Image{time, image};
+}
+
+Images LoadImages(Path folder, size_t frame_id) {
+  Image img_00{LoadImage(folder, "image_00", frame_id)};
+  Image img_01{LoadImage(folder, "image_01", frame_id)};
+  Image img_02{LoadImage(folder, "image_02", frame_id)};
+  Image img_03{LoadImage(folder, "image_03", frame_id)};
+
+  return Images{img_00, img_01, img_02, img_03};
+}
+
 Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
                       bool const load_images) {
   // load oxts
-  Oxts odometry{LoadOxts(data_folder, frame_id)};
+  Oxts const odometry{LoadOxts(data_folder, frame_id)};
 
   // load scan
-  LidarScan lidar_scan{LoadLidarScan(data_folder, frame_id)};
+  LidarScan const lidar_scan{LoadLidarScan(data_folder, frame_id)};
 
-  // load images
-  (void)load_images;
-
-  return Frame(odometry, lidar_scan);
+  // load images if requested and return
+  if (load_images) {
+    Images const images{LoadImages(data_folder, frame_id)};
+    return Frame(odometry, lidar_scan, images);
+  } else {
+    return Frame(odometry, lidar_scan);
+  }
 }
 
 } // namespace kmc

@@ -14,6 +14,11 @@ Pointcloud LoadPointcloud(Path const pointcloud_file);
 
 LidarScan LoadLidarScan(Path folder, size_t frame_id);
 
+Image LoadImage(Path const folder, std::string const camera,
+                size_t const frame_id);
+
+Images LoadImages(Path folder, size_t frame_id);
+
 Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
                       bool const load_images = false);
 
