@@ -20,6 +20,7 @@ set(SRC_FILES
     src/${PROJECT_NAME}/utils.cpp
     src/${PROJECT_NAME}/data_io.cpp
     src/${PROJECT_NAME}/motion_compensation.cpp
+    src/${PROJECT_NAME}/camera_model.cpp
     )
 
 # compile stuff in the core library #

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "kitti_motion_compensation/camera_model.hpp"
 #include "kitti_motion_compensation/data_io.hpp"
 #include "kitti_motion_compensation/data_types.hpp"
 
@@ -85,11 +86,24 @@ TEST(DataIoTest, LoadImagesProperly) {
 }
 
 TEST(DataIoTest, LoadCameraCalibrations) {
-  kmc::Path const data_folder{"../assets/2011_09_26"};
+  kmc::Path const calibrations_folder{"../assets/2011_09_26"};
+  kmc::Path const data_folder{
+      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  size_t const frame_id{0};
 
-  kmc::viz::LoadCameraCalibrations(data_folder);
+  kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id, true)};
 
-  std::cout << kmc::viz::LoadLidarExtrinsics(data_folder).matrix() << std::endl;
+  kmc::viz::CameraCalibrations camera_calibrations{
+      kmc::viz::LoadCameraCalibrations(calibrations_folder)};
+  Eigen::Affine3d tf_c00_lo{kmc::viz::LoadLidarExtrinsics(calibrations_folder)};
+
+  kmc::Images const projected_images{
+      ProjectPointcloudOnFrame(frame, camera_calibrations, tf_c00_lo)};
+
+  cv::imwrite("image_00.png", projected_images.image_00.image);
+  cv::imwrite("image_01.png", projected_images.image_01.image);
+  cv::imwrite("image_02.png", projected_images.image_02.image);
+  cv::imwrite("image_03.png", projected_images.image_03.image);
 
   ASSERT_TRUE(false);
 }

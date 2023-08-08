@@ -90,7 +90,7 @@ struct CameraCalibration {
   Eigen::Vector3d T;
   Eigen::Vector2d S_rect;
   Eigen::Matrix3d R_rect;
-  P p_rect;
+  P P_rect;
 };
 
 struct CameraCalibrations {
