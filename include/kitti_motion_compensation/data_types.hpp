@@ -76,3 +76,28 @@ struct Frame {
 };
 
 } // namespace kmc
+
+namespace kmc::viz {
+
+// pinhole camera intrinsic + projection matrix
+typedef Eigen::Matrix<double, 3, 4> P;
+
+struct CameraCalibration {
+  Eigen::Vector2d S;
+  Eigen::Matrix3d K;
+  Eigen::Matrix<double, 5, 1> D;
+  Eigen::Matrix3d R;
+  Eigen::Vector3d T;
+  Eigen::Vector2d S_rect;
+  Eigen::Matrix3d R_rect;
+  P p_rect;
+};
+
+struct CameraCalibrations {
+  CameraCalibration camera_00;
+  CameraCalibration camera_01;
+  CameraCalibration camera_02;
+  CameraCalibration camera_03;
+};
+
+} // namespace kmc::viz

@@ -175,3 +175,165 @@ Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
 }
 
 } // namespace kmc
+
+namespace kmc::viz {
+
+// Eigen::Vector2d S;
+// Eigen::Matrix3d K;
+// Eigen::Matrix<double, 5, 1> D;
+// Eigen::Matrix3d R;
+// Eigen::Vector3d T;
+// Eigen::Vector2d S_rect;
+// Eigen::Matrix3d R_rect;
+CameraCalibration CalibrationLinesToCalibration(
+    std::vector<std::string> const calibration_lines) {
+  // this is really an unfortunate function but we need to convert the
+  // calibration txt files into eigen matrics somehow :) If someone has a
+  // better idea please let me know.
+
+  // S
+  std::vector<std::string> S_tokens{kmc::TokenizeString(calibration_lines[0])};
+
+  Eigen::Vector2d S;
+  S << std::stod(S_tokens[1]), std::stod(S_tokens[2]);
+
+  // K
+  std::vector<std::string> K_tokens{kmc::TokenizeString(calibration_lines[1])};
+
+  Eigen::Matrix3d K;
+  K << std::stod(K_tokens[1]), std::stod(K_tokens[2]), std::stod(K_tokens[3]),
+      std::stod(K_tokens[4]), std::stod(K_tokens[5]), std::stod(K_tokens[6]),
+      std::stod(K_tokens[7]), std::stod(K_tokens[8]), std::stod(K_tokens[9]);
+
+  // D
+  std::vector<std::string> D_tokens{kmc::TokenizeString(calibration_lines[2])};
+
+  Eigen::Matrix<double, 5, 1> D;
+  D << std::stod(D_tokens[1]), std::stod(D_tokens[2]), std::stod(D_tokens[3]),
+      std::stod(D_tokens[4]), std::stod(D_tokens[5]);
+
+  // R
+  std::vector<std::string> R_tokens{kmc::TokenizeString(calibration_lines[3])};
+
+  Eigen::Matrix3d R;
+  R << std::stod(R_tokens[1]), std::stod(R_tokens[2]), std::stod(R_tokens[3]),
+      std::stod(R_tokens[4]), std::stod(R_tokens[5]), std::stod(R_tokens[6]),
+      std::stod(R_tokens[7]), std::stod(R_tokens[8]), std::stod(R_tokens[9]);
+
+  // T
+  std::vector<std::string> T_tokens{kmc::TokenizeString(calibration_lines[4])};
+
+  Eigen::Vector3d T;
+  T << std::stod(T_tokens[1]), std::stod(T_tokens[2]), std::stod(T_tokens[3]);
+
+  // S_rect
+  std::vector<std::string> S_rect_tokens{
+      kmc::TokenizeString(calibration_lines[5])};
+
+  Eigen::Vector2d S_rect;
+  S_rect << std::stod(S_rect_tokens[1]), std::stod(S_rect_tokens[2]);
+
+  // R_rect
+  std::vector<std::string> R_rect_tokens{
+      kmc::TokenizeString(calibration_lines[6])};
+
+  Eigen::Matrix3d R_rect;
+  R_rect << std::stod(R_rect_tokens[1]), std::stod(R_rect_tokens[2]),
+      std::stod(R_rect_tokens[3]), std::stod(R_rect_tokens[4]),
+      std::stod(R_rect_tokens[5]), std::stod(R_rect_tokens[6]),
+      std::stod(R_rect_tokens[7]), std::stod(R_rect_tokens[8]),
+      std::stod(R_rect_tokens[9]);
+
+  // P_rect
+  std::vector<std::string> P_rect_tokens{
+      kmc::TokenizeString(calibration_lines[7])};
+
+  P P_rect;
+  P_rect << std::stod(P_rect_tokens[1]), std::stod(P_rect_tokens[2]),
+      std::stod(P_rect_tokens[3]), std::stod(P_rect_tokens[4]),
+      std::stod(P_rect_tokens[5]), std::stod(P_rect_tokens[6]),
+      std::stod(P_rect_tokens[7]), std::stod(P_rect_tokens[8]),
+      std::stod(P_rect_tokens[9]), std::stod(P_rect_tokens[10]),
+      std::stod(P_rect_tokens[11]), std::stod(P_rect_tokens[12]);
+
+  return CameraCalibration{S, K, D, R, T, S_rect, R_rect, P_rect};
+}
+
+CameraCalibrations LoadCameraCalibrations(kmc::Path const data_folder) {
+  kmc::Path const calibration_file(data_folder /
+                                   kmc::Path("calib_cam_to_cam.txt"));
+  std::ifstream calibration_is(calibration_file);
+
+  if (not calibration_is.is_open()) {
+    std::cout << "Failed to open camera calibration file: " << calibration_file
+              << '\n';
+    exit(0);
+  }
+
+  // throw out the first two lines that contain meta information
+  std::string calibration_line;
+  std::getline(calibration_is, calibration_line);
+  std::getline(calibration_is, calibration_line);
+
+  // load the four camera calibrations - each one has eight lines
+  std::vector<CameraCalibration> camera_calibrations;
+  for (size_t n{0}; n < 4; ++n) {
+    std::vector<std::string> calibration_lines;
+
+    for (size_t i{0}; i < 8; ++i) {
+      std::getline(calibration_is, calibration_line);
+      calibration_lines.push_back(calibration_line);
+    }
+
+    CameraCalibration camera_calibration{
+        CalibrationLinesToCalibration(calibration_lines)};
+    camera_calibrations.push_back(camera_calibration);
+  }
+
+  calibration_is.close();
+
+  return CameraCalibrations{camera_calibrations[0], camera_calibrations[1],
+                            camera_calibrations[2], camera_calibrations[3]};
+}
+
+Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder) {
+  kmc::Path const calibration_file(data_folder /
+                                   kmc::Path("calib_velo_to_cam.txt"));
+  std::ifstream calibration_is(calibration_file);
+
+  if (not calibration_is.is_open()) {
+    std::cout << "Failed to open camera calibration file: " << calibration_file
+              << '\n';
+    exit(0);
+  }
+
+  // throw out the first line that contains meta information
+  std::string calibration_line;
+  std::getline(calibration_is, calibration_line);
+
+  // R
+  std::getline(calibration_is, calibration_line);
+  std::vector<std::string> R_tokens{kmc::TokenizeString(calibration_line)};
+
+  Eigen::Matrix3d R;
+  R << std::stod(R_tokens[1]), std::stod(R_tokens[2]), std::stod(R_tokens[3]),
+      std::stod(R_tokens[4]), std::stod(R_tokens[5]), std::stod(R_tokens[6]),
+      std::stod(R_tokens[7]), std::stod(R_tokens[8]), std::stod(R_tokens[9]);
+
+  // T
+  std::getline(calibration_is, calibration_line);
+  std::vector<std::string> T_tokens{kmc::TokenizeString(calibration_line)};
+
+  Eigen::Vector3d T;
+  T << std::stod(T_tokens[1]), std::stod(T_tokens[2]), std::stod(T_tokens[3]);
+
+  // transform from lidar frame to camera_00
+  Eigen::Affine3d tf_c00_lo{Eigen::Affine3d::Identity()};
+
+  tf_c00_lo = R * tf_c00_lo;
+  tf_c00_lo.translation() = T;
+
+  return tf_c00_lo;
+}
+
+} // namespace kmc::viz

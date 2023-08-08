@@ -84,6 +84,16 @@ TEST(DataIoTest, LoadImagesProperly) {
   ASSERT_EQ(images.image_00.image.cols, 1242); // width
 }
 
+TEST(DataIoTest, LoadCameraCalibrations) {
+  kmc::Path const data_folder{"../assets/2011_09_26"};
+
+  kmc::viz::LoadCameraCalibrations(data_folder);
+
+  std::cout << kmc::viz::LoadLidarExtrinsics(data_folder).matrix() << std::endl;
+
+  ASSERT_TRUE(false);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

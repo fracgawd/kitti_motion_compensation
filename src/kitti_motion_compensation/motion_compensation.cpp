@@ -21,10 +21,8 @@ double FractionOfScanCompleted(Eigen::Vector4d const point) {
   //
   //    1) Each point has a time stamp.
   //    2) The lidar scan is "dense" (i.e. non-returns are filled with a
-  //    default
-  //        value) and its time in the scan be recovered from its known
-  //        position
-  //        in the data structure.
+  //    default value) and its time in the scan be recovered from its known
+  //    position in the data structure.
   //
   // Unfortunately for us, the kitti lidar data has neither of the above
   // properties. So then how do we recover "when in the scan" each point was

@@ -23,3 +23,14 @@ Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
                       bool const load_images = false);
 
 } // namespace kmc
+
+namespace kmc::viz {
+
+CameraCalibration
+CalibrationLinesToCalibration(std::vector<std::string> const calibration_lines);
+
+CameraCalibrations LoadCameraCalibrations(kmc::Path const data_folder);
+
+Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder);
+
+} // namespace kmc::viz
