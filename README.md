@@ -1,9 +1,9 @@
 # KITTI Motion Compensation Library 
 Correction of measurement motion distortion is critical for accurate algorithm development and benchmarking. The Kitti Motion Compensation package provides an interface to motion compensate the Kitti dataset Velodyne lidar pointcloud using vehicle odometry and timing data. 
 
-A nice way to visualize this effect is to project the pointcloud onto the image before and after motion compensation. As you can see pointclouds line up much better after motion compensation.
+A nice way to visualize the motion compensation effect is to project the pointcloud onto the image before and after motion compensation. As you can see pointclouds line up much better after motion compensation.
 
-"Wow" | Look at that bike! |  The compensated person is much happier
+"Wow... makes sense" | Look at that bike! |  The compensated person is much happier
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](assets/frame_1_left_scene.gif) |  ![](assets/frame_1_right_scene.gif) | ![](assets/frame_2_right_scene.gif)
 
@@ -19,17 +19,6 @@ The authors of the Kitti dataset explictly write in their development kit readme
 I can't describe the problem much better than the authors of KITTI. As one the most influential robotics datasets on the planet, you would imagine there would be a pleathora of information about how to "untwist" (motion compensate) the dataset. Well it turns out there is not, and this package is an answer to that unfilled need. 
 
 Note that the KITTI authors were very smart and trigger the cameras when the lidar is "pointing forward" towards the front of the car. This means that points directly in front of the car will line up perfectly, and only at the edges of the images do you really explicitly notice the motion distortion at the speeds they drive at. This was genius in one way that it made the dataset easy to use but unfortunate in another in that it let untold number of researchers ignore or at least not notice the problem.
-
-## Notes
-Future work:
-* Projection error visualization
-* Rotational velocity calculation
-* CMake clean up
-* Install instructions/demos
-
-## Packages to Install 
-
-    sudo apt install libgtest-dev libeigen3-dev libopencv-dev
     
 ## Kitti Benchmarks
 Monocular depth estimation is a classic task, particularly self-supervised monocular depth estimation. I took as an example the [Monodepth2](https://github.com/nianticlabs/monodepth2) repo, one of the greatest contributions made to the open source depth estimation community. 
@@ -46,3 +35,38 @@ The implications are even bigger for supervised monocular depth estimation metho
 | Motion Compensated | 0.092 | 0.725 | 4.386 | 0.170 | 0.908 | 0.964 | 0.982 |
 
 Tested using the monodepth2 weights "mono+stereo_640x192" on 2011_09_26 runs 0001, 0005, 0091, 0104 and 0117. The scores are very good because the data was used for training also. The point here is to show that using motion compensation gets you better scores, not test the monodepth training itself so the splits are not as important.
+
+## Running the Thing 
+I only tested this on Ubuntu 20.04 on my local machine. Please make a PR as you find problems with the installation process.
+
+    sudo apt install libgtest-dev libeigen3-dev libopencv-dev
+
+### Build
+
+    mkdir build && cd build
+    cmake .. 
+    make 
+
+### Run Tests
+Tests are the best documentation I have for how the library is supposed to work. Please look here first for an idea of what is happening.
+
+    ./test_data_io 
+    ./test_motion_compensation
+
+### Run Example
+There is at the moment only one simple example, you need to hardcode the paths and recompile it if you want to motion compensate the runs. Note that the motion compensated pointclouds will be written into a directory `data_motion_compensated` in the `velodyne_points` folder of each respective run.
+
+    ./motion_compensate_runs
+
+## Notes
+Future work:
+* Projection error visualization
+* Rotational velocity calculation
+* CMake clean up
+* Install instructions/demos
+
+I wrote this as a little contribution to the awesome open source robotics community and to help educate people; NOT to bash people for doing things "wrong".
+
+## Citations
+* Geiger, Andreas et al. “Vision meets robotics: The KITTI dataset.” The International Journal of Robotics Research 32 (2013): 1231 - 1237.
+* Godard, Clément et al. “Digging Into Self-Supervised Monocular Depth Estimation.” 2019 IEEE/CVF International Conference on Computer Vision (ICCV) (2018): 3827-3837.
