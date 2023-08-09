@@ -22,6 +22,9 @@ Images LoadImages(Path const folder, size_t const frame_id);
 Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
                       bool const load_images = false);
 
+void WritePointcloud(Path const data_folder, size_t const frame_id,
+                     Pointcloud const &pointcloud);
+
 } // namespace kmc
 
 namespace kmc::viz {

@@ -174,6 +174,34 @@ Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
   }
 }
 
+void WritePointcloud(Path const data_folder, size_t const frame_id,
+                     Pointcloud const &pointcloud) {
+  // I tried to write this functio like the LoadPointcloud function but in
+  // reverse. It didn't work and I ended up stumbling around the web for a
+  // little bit. Current code is modeled after
+  // https://stackoverflow.com/questions/30923685/writing-floats-to-a-binary-file-in-c-equivalent-of-javas-dataoutputstream-w
+
+  Path const pointcloud_file(data_folder /
+                             Path(IdToZeroPaddedString(frame_id) + ".bin"));
+
+  std::ofstream out;
+  out.open(pointcloud_file, std::ios::out | std::ios::binary);
+
+  int32_t num_points = pointcloud.rows();
+  for (int32_t i = 0; i < num_points; i++) {
+    auto const point = pointcloud.row(i);
+    float x{static_cast<float>(point(0))};
+    out.write(reinterpret_cast<const char *>(&x), sizeof(float));
+    x = static_cast<float>(point(1));
+    out.write(reinterpret_cast<const char *>(&x), sizeof(float));
+    x = static_cast<float>(point(2));
+    out.write(reinterpret_cast<const char *>(&x), sizeof(float));
+    x = static_cast<float>(point(3));
+    out.write(reinterpret_cast<const char *>(&x), sizeof(float));
+  }
+  out.close();
+}
+
 } // namespace kmc
 
 namespace kmc::viz {
