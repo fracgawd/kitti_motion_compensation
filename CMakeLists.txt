@@ -21,6 +21,7 @@ set(SRC_FILES
     src/${PROJECT_NAME}/data_io.cpp
     src/${PROJECT_NAME}/motion_compensation.cpp
     src/${PROJECT_NAME}/camera_model.cpp
+    src/${PROJECT_NAME}/handlers.cpp
     )
 
 # compile stuff in the core library #
@@ -37,10 +38,10 @@ target_link_libraries(
 )
 
 # compile some examples #
-add_executable(place_holder examples/place_holder.cpp)
-target_include_directories(place_holder PRIVATE ${INCLUDE_DIRECTORIES})
+add_executable(motion_compensate_runs examples/motion_compensate_runs.cpp)
+target_include_directories(motion_compensate_runs PRIVATE ${INCLUDE_DIRECTORIES})
 # TODO(jack): remove opencv_libs
-target_link_libraries(place_holder PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
+target_link_libraries(motion_compensate_runs PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
 
 # compile the tests #
 add_executable(test_data_io test/test_data_io.cpp)
