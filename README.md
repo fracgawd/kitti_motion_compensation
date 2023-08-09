@@ -1,7 +1,6 @@
 # KITTI Motion Compensation Library 
-* Author: Jack Borer
-* Date Started: 06.08.2023
-* Location: Jena, Germany
+
+![Motion compensation projection visualized](assets/first_gif.gif)
 
 ## Notes
 * The namespace abbreviation "kmc" stands for "kitti motion compensation"
@@ -11,3 +10,10 @@
 ## Packages to Install 
 
     sudo apt install libgtest-dev libeigen3-dev libopencv-dev
+    
+## Kitti Benchmarks
+
+| Mode | abs rel | sq rel | rmse | rmse log | a1 | a2 | a3 |
+| :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Raw | 0.092 | 0.730 | 4.392 | 0.171 | 0.907 | 0.964 | 0.982 |
+| Motion Compensated | | | | | | | |

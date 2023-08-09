@@ -67,7 +67,7 @@ Eigen::Vector4d MotionCompensatePoint(Eigen::Vector4d const point,
                                       Oxts const odometry,
                                       Time const requested_time) {
 
-  Time const delta_time{point_stamp - requested_time};
+  Time const delta_time{requested_time - point_stamp};
 
   Eigen::Vector3d const delta_pose{
       delta_time * Eigen::Vector3d{odometry.vf, odometry.vl, odometry.vu}};

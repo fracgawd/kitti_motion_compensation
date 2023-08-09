@@ -63,31 +63,18 @@ TEST(MotionCompensationTest, XXX) {
   kmc::Pointcloud motion_compensated_pointcloud{
       kmc::MotionCompensate(test_frame, requested_time)};
 
-  // for (Eigen::Index i{0}; i < motion_compensated_pointcloud.rows(); ++i) {
-  //   std::cout << motion_compensated_pointcloud.row(i).matrix() << std::endl;
-  // }
-
-  // From the point where we are half way into the scan(i.e.
-  // requested_time=0.05 for this test case), moving forward at 1m/s, a point
-  // measured 1/4 of the way through the scan is now 0.025m behind us.
   Eigen::Vector4d const point_1{motion_compensated_pointcloud.row(0)};
-  ASSERT_FLOAT_EQ(point_1(0), -0.025);
+  ASSERT_FLOAT_EQ(point_1(0), 0.025);
   ASSERT_FLOAT_EQ(point_1(1), -5.0);
   ASSERT_FLOAT_EQ(point_1(2), 0.0);
 
-  // The requested time is the same as the actual time for this point (sure I
-  // know its technically pseudo time) the point is the same as what the lidar
-  // measured.
   Eigen::Vector4d const point_2{motion_compensated_pointcloud.row(1)};
   ASSERT_FLOAT_EQ(point_2(0), test_frame.scan_.cloud.row(1)(0));
   ASSERT_FLOAT_EQ(point_2(1), test_frame.scan_.cloud.row(1)(1));
   ASSERT_FLOAT_EQ(point_2(2), test_frame.scan_.cloud.row(1)(2));
 
-  // From the point where we are half way into the scan(i.e.
-  // requested_time=0.05 for this test case), moving forward at 1m/s, a point
-  // measured 3/4 of the way through the scan is 0.025m in front of us.
   Eigen::Vector4d const point_3{motion_compensated_pointcloud.row(2)};
-  ASSERT_FLOAT_EQ(point_3(0), 0.025);
+  ASSERT_FLOAT_EQ(point_3(0), -0.025);
   ASSERT_FLOAT_EQ(point_3(1), 5.0);
   ASSERT_FLOAT_EQ(point_3(2), 0.0);
 }

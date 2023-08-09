@@ -21,10 +21,9 @@ Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect,
     if (pointcloud_c00_rect.row(i)(2) < 0.01) {
       continue;
     }
-    // Note the switch in logic about what is "x" and what is "y" in the
-    // point
-    cv::Point const point{cv::Point(pixels.row(i)(1), pixels.row(i)(0))};
-    cv::circle(image_projection, point, 1, cv::Scalar(0, 255, 0), 1, 1, 0);
+
+    cv::Point const point{cv::Point(pixels.row(i)(0), pixels.row(i)(1))};
+    cv::circle(image_projection, point, 1, cv::Scalar(255, 255, 255), 1, 1, 0);
   }
 
   // TODO(jack): don't forget to copy over the timestamp
