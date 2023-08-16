@@ -4,7 +4,8 @@ namespace kmc::viz {
 
 Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect,
                                Image const &image,
-                               CameraCalibration const camera_calibration) {
+                               CameraCalibration const camera_calibration,
+                               double const max_range) {
   // In this function we do the "Y = P_rect_xx * X_c00_rect" part. Now we have
   // pixels! Sorry about the transposes again :(
   Eigen::MatrixX3d pixels =
@@ -15,15 +16,23 @@ Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect,
 
   cv::Mat image_projection{image.image.clone()};
   for (Eigen::Index i{0}; i < pixels.rows(); ++i) {
+    double const distance_in_front_of_camera{pointcloud_c00_rect.row(i)(2)};
     // Only points in front of the camera are valid. All points in front of the
     // image but outside the image height-width are automaticall handled by
     // opencv - the z coordinate is the direction perpendicular to the camera
-    if (pointcloud_c00_rect.row(i)(2) < 0.01) {
+    if (distance_in_front_of_camera < 0.01 or
+        distance_in_front_of_camera > max_range) {
       continue;
     }
 
+    // colore points by their distance in front of the camera (z-axis)
+    double const range_scale{distance_in_front_of_camera / (max_range - 0.01)};
+    double const color_scale{255.0 * range_scale};
+
     cv::Point const point{cv::Point(pixels.row(i)(0), pixels.row(i)(1))};
-    cv::circle(image_projection, point, 1, cv::Scalar(255, 255, 255), 1, 1, 0);
+    cv::circle(image_projection, point, 1,
+               cv::Scalar(255 - color_scale, color_scale, 255 - color_scale), 1,
+               1, 0);
   }
 
   // TODO(jack): don't forget to copy over the timestamp

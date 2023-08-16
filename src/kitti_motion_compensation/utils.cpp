@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <opencv2/opencv.hpp>
+
 namespace kmc {
 
 std::string IdToZeroPaddedString(size_t const id, size_t const pad) {
@@ -37,3 +39,22 @@ double MmHhSsToSeconds(std::string const mm_hh_ss) {
 }
 
 } // namespace kmc
+
+namespace kmc::viz::utils {
+
+void StackAndProcessProjectionImagePair(cv::Mat const &img_top,
+                                        cv::Mat const &img_bottom,
+                                        Path const output_file) {
+  cv::Mat stacked;
+  cv::vconcat(img_top, img_bottom, stacked);
+
+  int const image_height{img_top.rows};
+  cv::putText(stacked, "Raw", cv::Point(10, 30), cv::FONT_HERSHEY_DUPLEX, 1.0,
+              CV_RGB(255, 255, 255), 2);
+  cv::putText(stacked, "Motion Compensated", cv::Point(10, image_height + 30),
+              cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 255, 255), 2);
+
+  cv::imwrite(output_file, stacked);
+}
+
+} // namespace kmc::viz::utils

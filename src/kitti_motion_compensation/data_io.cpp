@@ -176,7 +176,7 @@ Frame LoadSingleFrame(Path const data_folder, size_t const frame_id,
 
 void WritePointcloud(Path const data_folder, size_t const frame_id,
                      Pointcloud const &pointcloud) {
-  // I tried to write this functio like the LoadPointcloud function but in
+  // I tried to write this function like the LoadPointcloud function but in
   // reverse. It didn't work and I ended up stumbling around the web for a
   // little bit. Current code is modeled after
   // https://stackoverflow.com/questions/30923685/writing-floats-to-a-binary-file-in-c-equivalent-of-javas-dataoutputstream-w
@@ -205,6 +205,8 @@ void WritePointcloud(Path const data_folder, size_t const frame_id,
 } // namespace kmc
 
 namespace kmc::viz {
+
+namespace fs = std::filesystem;
 
 // Eigen::Vector2d S;
 // Eigen::Matrix3d K;
@@ -362,6 +364,85 @@ Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder) {
   tf_c00_lo.translation() = T;
 
   return tf_c00_lo;
+}
+
+void MakeOutputImageFolders(Path const output_folder) {
+  // TODO(jack): eliminate copy and pasted code
+
+  Path const image_00_folder{output_folder / Path("image_00")};
+  if (not fs::is_directory(image_00_folder) ||
+      not fs::exists(image_00_folder)) {
+    fs::create_directory(image_00_folder);
+  } else {
+    std::cout << "The directory: " << image_00_folder
+              << " already exists and you are probbaly about to overwrite the "
+                 "images you have in there "
+              << std::endl;
+  }
+
+  Path const image_01_folder{output_folder / Path("image_01")};
+  if (not fs::is_directory(image_01_folder) ||
+      not fs::exists(image_01_folder)) {
+    fs::create_directory(image_01_folder);
+  } else {
+    std::cout << "The directory: " << image_01_folder
+              << " already exists and you are probbaly about to overwrite the "
+                 "images you have in there "
+              << std::endl;
+  }
+
+  Path const image_02_folder{output_folder / Path("image_02")};
+  if (not fs::is_directory(image_02_folder) ||
+      not fs::exists(image_02_folder)) {
+    fs::create_directory(image_02_folder);
+  } else {
+    std::cout << "The directory: " << image_02_folder
+              << " already exists and you are probbaly about to overwrite the "
+                 "images you have in there "
+              << std::endl;
+  }
+
+  Path const image_03_folder{output_folder / Path("image_03")};
+  if (not fs::is_directory(image_03_folder) ||
+      not fs::exists(image_03_folder)) {
+    fs::create_directory(image_03_folder);
+  } else {
+    std::cout << "The directory: " << image_03_folder
+              << " already exists and you are probbaly about to overwrite the "
+                 "images you have in there "
+              << std::endl;
+  }
+}
+
+void SaveImagesOnTopOfEachother(Images const &top_imgs,
+                                Images const &bottom_imgs,
+                                size_t const frame_id,
+                                Path const output_folder) {
+  // Note that this function depends on the fact that the MakeOutputImageFolders
+  // was called and created the directories we need to write to in the
+  // output_folder
+
+  viz::utils::StackAndProcessProjectionImagePair(
+      top_imgs.image_00.image, bottom_imgs.image_00.image,
+      output_folder /
+          Path("image_00/" + IdToZeroPaddedString(frame_id) + ".png"));
+
+  viz::utils::StackAndProcessProjectionImagePair(
+      top_imgs.image_01.image, bottom_imgs.image_01.image,
+      output_folder /
+          Path("image_01/" + IdToZeroPaddedString(frame_id) + ".png"));
+
+  viz::utils::StackAndProcessProjectionImagePair(
+      top_imgs.image_02.image, bottom_imgs.image_02.image,
+      output_folder /
+          Path("image_02/" + IdToZeroPaddedString(frame_id) + ".png"));
+
+  viz::utils::StackAndProcessProjectionImagePair(
+      top_imgs.image_03.image, bottom_imgs.image_03.image,
+      output_folder /
+          Path("image_03/" + IdToZeroPaddedString(frame_id) + ".png"));
+
+  return;
 }
 
 } // namespace kmc::viz

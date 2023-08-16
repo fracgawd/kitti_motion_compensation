@@ -43,6 +43,11 @@ target_include_directories(motion_compensate_runs PRIVATE ${INCLUDE_DIRECTORIES}
 # TODO(jack): remove opencv_libs
 target_link_libraries(motion_compensate_runs PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
 
+add_executable(generate_projection_visualization_of_run examples/generate_projection_visualization_of_run.cpp)
+target_include_directories(generate_projection_visualization_of_run PRIVATE ${INCLUDE_DIRECTORIES})
+# TODO(jack): remove opencv_libs
+target_link_libraries(generate_projection_visualization_of_run PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
+
 # compile the tests #
 add_executable(test_data_io test/test_data_io.cpp)
 target_include_directories(test_data_io PRIVATE ${GTEST_INCLUDE_DIRS})

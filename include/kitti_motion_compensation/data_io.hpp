@@ -36,4 +36,11 @@ CameraCalibrations LoadCameraCalibrations(kmc::Path const data_folder);
 
 Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder);
 
+void MakeOutputImageFolders(Path const output_folder);
+
+void SaveImagesOnTopOfEachother(Images const &top_imgs,
+                                Images const &bottom_imgs,
+                                size_t const frame_id,
+                                Path const output_folder);
+
 } // namespace kmc::viz

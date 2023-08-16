@@ -108,6 +108,7 @@ Pointcloud MotionCompensate(LidarScan const &lidar_scan, Oxts const odometry,
         point_i, point_i_stamp, odometry, requested_time)};
 
     motion_compensated_cloud.row(i) = point_i_motion_compensated;
+    motion_compensated_cloud.row(i)(3) = cloud.row(i)(3); // transfer intensity
   }
 
   return motion_compensated_cloud;

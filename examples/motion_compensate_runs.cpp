@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+using namespace kmc;
+
 std::string const DATA_DIR{"../data/2011_09_26/"};
 
 std::vector<std::string> const RUNS{

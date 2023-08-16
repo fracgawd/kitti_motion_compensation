@@ -1,4 +1,5 @@
 .vscode/
 build/
+data/
 
 assets/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data_motion_compensated/0000000000.bin

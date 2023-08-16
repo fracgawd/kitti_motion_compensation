@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 
+#include "kitti_motion_compensation/camera_model.hpp"
 #include "kitti_motion_compensation/data_io.hpp"
 #include "kitti_motion_compensation/motion_compensation.hpp"
 
@@ -44,6 +45,42 @@ void MotionCompensateRun(Path const run_folder) {
         MotionCompensate(frame, requested_time)};
 
     WritePointcloud(data_folder, i, motion_compensated_pointcloud);
+  }
+}
+
+void GenerateProjectionVisualizationOfRun(
+    viz::CameraCalibrations const camera_calibrations,
+    Eigen::Affine3d const lidar_extrinsics, Path const run_folder,
+    Path const output_folder) {
+  // could use any folder to find out how many frames we have, here we just
+  // happen to do it with the velodyne data folder
+  Path const velodyne_folder{run_folder / Path{"velodyne_points"}};
+  size_t number_of_frames{
+      NumberOfFilesInDirectory(velodyne_folder / Path("data"))};
+
+  viz::MakeOutputImageFolders(output_folder);
+
+  for (size_t i{0}; i < number_of_frames; ++i) {
+    // load the frame and project the raw pointcloud
+    Frame frame{LoadSingleFrame(run_folder, i, true)};
+    Images const projected_imgs_raw{viz::ProjectPointcloudOnFrame(
+        frame, camera_calibrations, lidar_extrinsics)};
+
+    // motion compensate the pointcloud and edit frame
+    Time const requested_time{frame.scan_.stamp_middle};
+    Pointcloud const motion_compensated_pointcloud{
+        MotionCompensate(frame, requested_time)};
+
+    frame.scan_.cloud = motion_compensated_pointcloud;
+
+    // project the motion compensated pointcloud
+    Images const projected_imgs_mc{viz::ProjectPointcloudOnFrame(
+        frame, camera_calibrations, lidar_extrinsics)};
+
+    viz::SaveImagesOnTopOfEachother(projected_imgs_raw, projected_imgs_mc, i,
+                                    output_folder);
+
+    std::cout << "Projected and saved frame: " << i << std::endl;
   }
 }
 
