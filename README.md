@@ -25,16 +25,20 @@ Monocular depth estimation is a classic task, particularly self-supervised monoc
 
 Inside the repo they provide the code to download the [KITTI Raw](https://www.cvlibs.net/datasets/kitti/raw_data.php) dataset. They also provide the code to extract the "ground truth" depth maps, and the code to calculate the depth error metrics between the predicted depth and the "ground truth" lidar depth. What they do not do however is motion compensate the pointcloud. 
 
-If we do a very simple experiment where we calculate the error metrics using the original un-motion compensated lidar pointclouds and the motion compensated pointclouds we see the difference. I admit, it isn't earth shattering, but the "sq rel" error decreases from 0.730 to 0.725, the "rmse" from 4.392 to 4.386 and the "a1" bumps from 0.907 to 0.908 (increased a1/a2/a3 is better). Getting a almost 7% decrease in "sq rel" error for free is pretty nice if you ask me. 
+If we do a very simple experiment where we calculate the error metrics using the original un-motion compensated lidar pointclouds and the motion compensated pointclouds we see the difference. I admit, it isn't earth shattering, but getting performance improvements on difficult benchmarks for free, isn't something most people ignore.
 
-The implications are even bigger for supervised monocular depth estimation methods, which for some reason were never able to resolve small objects. Small objects, particularly in the near road area to the left and right of the vehicle are where motion compensation has the most noticable effect, and could explain why some methods that didn't motion compensate saw poorer performance than they could have gotten otherwise. 
+Note that the metrics were calculated with a maximum of 10m, not 80m like the monodepth2 KITTI metrics are usually calculated. This was done because the effect of motion compensation is most pronounced in the near field area. 
 
 | Mode | abs rel | sq rel | rmse | rmse log | a1 | a2 | a3 |
 | :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Original | 0.092 | 0.730 | 4.392 | 0.171 | 0.907 | 0.964 | 0.982 |
-| Motion Compensated | 0.092 | 0.725 | 4.386 | 0.170 | 0.908 | 0.964 | 0.982 |
+| Raw                | 0.039038 | 0.049286 | 0.476586 | 0.066817 | 0.975427 | 0.992486 | 0.997693 |
+| Motion Compensated | 0.038686 | 0.047515 | 0.469283 | 0.065809  | 0.975810 | 0.992780 | 0.997869 |
+| Change (%)         | -0.91 | -3.73 | -1.56 | -1.53  | +0.04 | +0.03 | +0.02 |
+
 
 Tested using the monodepth2 weights "mono+stereo_640x192" on 2011_09_26 runs 0001, 0005, 0091, 0104 and 0117. The scores are very good because the data was used for training also. The point here is to show that using motion compensation gets you better scores, not test the monodepth training itself so the splits are not as important.
+
+The implications are probably even bigger for supervised monocular depth estimation methods, which for some reason were never able to resolve small objects. Small objects, particularly in the near road area to the left and right of the vehicle are where motion compensation has the most noticable effect, and could explain why some methods that didn't motion compensate saw poorer performance than they could have gotten otherwise. 
 
 ## Running the Thing 
 I only tested this on Ubuntu 20.04 on my local machine. Please make a PR as you find problems with the installation process.
