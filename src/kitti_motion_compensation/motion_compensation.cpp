@@ -2,13 +2,11 @@
 
 namespace kmc {
 
-bool DataIsSynchronized(Time const stamp_1, Time const stamp_2,
-                        Time const stamp_3) {
+bool DataIsSynchronized(Time const stamp_1, Time const stamp_2, Time const stamp_3) {
   // The lidar scans at 10Hz and the data is all synchonrized, so the timestamp
   // gap should never be larger than 0.1s. It is probably usually much smaller
   // actually :)
-  return (std::abs(stamp_1 - stamp_2) < 0.10) and
-         (std::abs(stamp_2 - stamp_3) < 0.10);
+  return (std::abs(stamp_1 - stamp_2) < 0.10) and (std::abs(stamp_2 - stamp_3) < 0.10);
 }
 
 double FractionOfScanCompleted(Eigen::Vector4d const point) {
@@ -54,27 +52,21 @@ double FractionOfScanCompleted(Eigen::Vector4d const point) {
   return (M_PI + std::atan2(point(1), point(0))) / (2.0 * M_PI);
 }
 
-Time GetPseudoTimeStamp(Eigen::Vector4d const point, Time const scan_start,
-                        Time const scan_end) {
+Time GetPseudoTimeStamp(Eigen::Vector4d const point, Time const scan_start, Time const scan_end) {
   double const position_in_scan{FractionOfScanCompleted(point)};
   Time const scan_duration{scan_end - scan_start};
 
   return scan_start + (scan_duration * position_in_scan);
 }
 
-Eigen::Vector4d MotionCompensatePoint(Eigen::Vector4d const point,
-                                      Time const point_stamp,
-                                      Oxts const odometry,
+Eigen::Vector4d MotionCompensatePoint(Eigen::Vector4d const point, Time const point_stamp, Oxts const odometry,
                                       Time const requested_time) {
-
   Time const delta_time{requested_time - point_stamp};
 
-  Eigen::Vector3d const delta_pose{
-      delta_time * Eigen::Vector3d{odometry.vf, odometry.vl, odometry.vu}};
+  Eigen::Vector3d const delta_pose{delta_time * Eigen::Vector3d{odometry.vf, odometry.vl, odometry.vu}};
 
   Eigen::Vector4d motion_compensated_point{point};
-  motion_compensated_point.topRows(3) =
-      delta_pose + motion_compensated_point.topRows(3);
+  motion_compensated_point.topRows(3) = delta_pose + motion_compensated_point.topRows(3);
 
   return motion_compensated_point;
 }
@@ -83,15 +75,12 @@ Pointcloud MotionCompensate(Frame frame, Time const requested_time) {
   return MotionCompensate(frame.scan_, frame.odometry_, requested_time);
 }
 
-Pointcloud MotionCompensate(LidarScan const &lidar_scan, Oxts const odometry,
-                            Time const requested_time) {
-  if (not DataIsSynchronized(lidar_scan.stamp_middle, odometry.stamp,
-                             requested_time)) {
-    std::cout
-        << "The requested synchronization was not within the time tolerance. "
-           "Are you sure your requested time is within the LidarScan? Are "
-           "you sure your odometry is for the LidarScan you provided?"
-        << '\n';
+Pointcloud MotionCompensate(LidarScan const &lidar_scan, Oxts const odometry, Time const requested_time) {
+  if (not DataIsSynchronized(lidar_scan.stamp_middle, odometry.stamp, requested_time)) {
+    std::cout << "The requested synchronization was not within the time tolerance. "
+                 "Are you sure your requested time is within the LidarScan? Are "
+                 "you sure your odometry is for the LidarScan you provided?"
+              << '\n';
     exit(0);
   }
 
@@ -104,14 +93,14 @@ Pointcloud MotionCompensate(LidarScan const &lidar_scan, Oxts const odometry,
     Eigen::Vector4d const point_i{cloud.row(i)};
     Time const point_i_stamp{GetPseudoTimeStamp(point_i, scan_start, scan_end)};
 
-    Eigen::Vector4d const point_i_motion_compensated{MotionCompensatePoint(
-        point_i, point_i_stamp, odometry, requested_time)};
+    Eigen::Vector4d const point_i_motion_compensated{
+        MotionCompensatePoint(point_i, point_i_stamp, odometry, requested_time)};
 
     motion_compensated_cloud.row(i) = point_i_motion_compensated;
-    motion_compensated_cloud.row(i)(3) = cloud.row(i)(3); // transfer intensity
+    motion_compensated_cloud.row(i)(3) = cloud.row(i)(3);  // transfer intensity
   }
 
   return motion_compensated_cloud;
 }
 
-} // namespace kmc
+}  // namespace kmc

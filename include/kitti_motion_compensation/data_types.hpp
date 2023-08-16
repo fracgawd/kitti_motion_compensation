@@ -1,12 +1,10 @@
 #pragma once
 
+#include <Eigen/Dense>
 #include <chrono>
 #include <filesystem>
-#include <optional>
-
-#include <Eigen/Dense>
-
 #include <opencv2/opencv.hpp>
+#include <optional>
 
 namespace kmc {
 
@@ -38,7 +36,7 @@ struct Oxts {
 
 struct LidarScan {
   Time stamp_start;
-  Time stamp_middle; // camera trigger time
+  Time stamp_middle;  // camera trigger time
   Time stamp_end;
 
   Pointcloud cloud;
@@ -60,8 +58,7 @@ struct Images {
 //** data structures with some logic **//
 
 struct Frame {
-  Frame(Oxts odometry, LidarScan scan,
-        std::optional<Images> images = std::nullopt)
+  Frame(Oxts odometry, LidarScan scan, std::optional<Images> images = std::nullopt)
       : odometry_{odometry}, scan_{scan}, images_{images} {}
 
   Oxts odometry_;
@@ -75,7 +72,7 @@ struct Frame {
   std::optional<Images> images_;
 };
 
-} // namespace kmc
+}  // namespace kmc
 
 namespace kmc::viz {
 
@@ -100,4 +97,4 @@ struct CameraCalibrations {
   CameraCalibration camera_03;
 };
 
-} // namespace kmc::viz
+}  // namespace kmc::viz

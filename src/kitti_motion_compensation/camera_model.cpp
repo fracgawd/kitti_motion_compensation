@@ -2,14 +2,11 @@
 
 namespace kmc::viz {
 
-Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect,
-                               Image const &image,
-                               CameraCalibration const camera_calibration,
-                               double const max_range) {
+Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect, Image const &image,
+                               CameraCalibration const camera_calibration, double const max_range) {
   // In this function we do the "Y = P_rect_xx * X_c00_rect" part. Now we have
   // pixels! Sorry about the transposes again :(
-  Eigen::MatrixX3d pixels =
-      (camera_calibration.P_rect * pointcloud_c00_rect.transpose()).transpose();
+  Eigen::MatrixX3d pixels = (camera_calibration.P_rect * pointcloud_c00_rect.transpose()).transpose();
 
   // Make pixels homogeneous - this scales them onto the unit image plane
   pixels = pixels.array().colwise() / pixels.col(2).array();
@@ -20,8 +17,7 @@ Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect,
     // Only points in front of the camera are valid. All points in front of the
     // image but outside the image height-width are automaticall handled by
     // opencv - the z coordinate is the direction perpendicular to the camera
-    if (distance_in_front_of_camera < 0.01 or
-        distance_in_front_of_camera > max_range) {
+    if (distance_in_front_of_camera < 0.01 or distance_in_front_of_camera > max_range) {
       continue;
     }
 
@@ -30,17 +26,14 @@ Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect,
     double const color_scale{255.0 * range_scale};
 
     cv::Point const point{cv::Point(pixels.row(i)(0), pixels.row(i)(1))};
-    cv::circle(image_projection, point, 1,
-               cv::Scalar(255 - color_scale, color_scale, 255 - color_scale), 1,
-               1, 0);
+    cv::circle(image_projection, point, 1, cv::Scalar(255 - color_scale, color_scale, 255 - color_scale), 1, 1, 0);
   }
 
   // TODO(jack): don't forget to copy over the timestamp
   return Image{image.stamp, image_projection};
 }
 
-Images ProjectPointcloudOnFrame(Frame const &frame,
-                                CameraCalibrations const camera_calibrations,
+Images ProjectPointcloudOnFrame(Frame const &frame, CameraCalibrations const camera_calibrations,
                                 Eigen::Affine3d const tf_c00_lo) {
   // Taken directly from the dev kit docs:
   //
@@ -77,33 +70,26 @@ Images ProjectPointcloudOnFrame(Frame const &frame,
   //
   //    p_c00 = tf_c00_lo * p_lo
   //
-  Eigen::MatrixX4d const pointcloud_c00_h =
-      (tf_c00_lo * pointcloud_lo_h.transpose()).transpose();
+  Eigen::MatrixX4d const pointcloud_c00_h = (tf_c00_lo * pointcloud_lo_h.transpose()).transpose();
 
   // Now we enter "rectified magical land" by rotating by R_rect_00
   Eigen::Affine3d R_rect_00{Eigen::Affine3d::Identity()};
   R_rect_00 = camera_calibrations.camera_00.R_rect * R_rect_00;
 
-  Eigen::MatrixX4d const pointcloud_c00_rect_h =
-      (R_rect_00 * pointcloud_c00_h.transpose()).transpose();
+  Eigen::MatrixX4d const pointcloud_c00_rect_h = (R_rect_00 * pointcloud_c00_h.transpose()).transpose();
 
   // Now project the pointcloud onto all four images using their respective
   // intrinsics
   Image const image_00_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_00,
-                               camera_calibrations.camera_00)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_00, camera_calibrations.camera_00)};
   Image const image_01_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_01,
-                               camera_calibrations.camera_01)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_01, camera_calibrations.camera_01)};
   Image const image_02_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_02,
-                               camera_calibrations.camera_02)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_02, camera_calibrations.camera_02)};
   Image const image_03_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_03,
-                               camera_calibrations.camera_03)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_03, camera_calibrations.camera_03)};
 
-  return Images{image_00_projection, image_01_projection, image_02_projection,
-                image_03_projection};
+  return Images{image_00_projection, image_01_projection, image_02_projection, image_03_projection};
 }
 
-} // namespace kmc::viz
+}  // namespace kmc::viz

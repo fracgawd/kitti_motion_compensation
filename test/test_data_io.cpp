@@ -2,13 +2,11 @@
 
 #include "kitti_motion_compensation/camera_model.hpp"
 #include "kitti_motion_compensation/data_io.hpp"
-
 #include "kitti_motion_compensation/data_types.hpp"
 #include "kitti_motion_compensation/utils.hpp"
 
 TEST(DataIoTest, LoadOdometryProperly) {
-  kmc::Path const data_folder{
-      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
@@ -21,8 +19,7 @@ TEST(DataIoTest, LoadOdometryProperly) {
 }
 
 TEST(DataIoTest, LoadPointCloudProperly) {
-  kmc::Path const data_folder{
-      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
@@ -52,57 +49,50 @@ TEST(DataIoTest, LoadPointCloudProperly) {
 }
 
 TEST(DataIoTest, LoadImagesOptional) {
-  kmc::Path const data_folder{
-      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
   bool load_images{false};
 
   // load and test a frame without images
-  kmc::Frame const frame_without_images{
-      kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
+  kmc::Frame const frame_without_images{kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
 
   ASSERT_FALSE(frame_without_images.images_.has_value());
 
   // load and test a frame with images
   load_images = true;
-  kmc::Frame const frame_with_images{
-      kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
+  kmc::Frame const frame_with_images{kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
 
   ASSERT_TRUE(frame_with_images.images_.has_value());
 }
 
 TEST(DataIoTest, LoadImagesProperly) {
-  kmc::Path const data_folder{
-      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id, true)};
 
   kmc::Images const images{frame.images_.value()};
   ASSERT_EQ(images.image_00.image.channels(),
-            1); // grayscale image has one channel
+            1);  // grayscale image has one channel
   ASSERT_EQ(images.image_02.image.channels(),
-            3);                                // rgb image has three channels
-  ASSERT_EQ(images.image_00.image.rows, 375);  // height
-  ASSERT_EQ(images.image_00.image.cols, 1242); // width
+            3);                                 // rgb image has three channels
+  ASSERT_EQ(images.image_00.image.rows, 375);   // height
+  ASSERT_EQ(images.image_00.image.cols, 1242);  // width
 }
 
 TEST(DataIoTest, SavePointcloud) {
   // load the test frame from the assets folder
-  kmc::Path const data_folder{
-      "../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
 
   // write out the pointcloud using our WritePointcloud function
-  kmc::Path const output_path{
-      data_folder / kmc::Path("velodyne_points/data_motion_compensated")};
+  kmc::Path const output_path{data_folder / kmc::Path("velodyne_points/data_motion_compensated")};
   kmc::WritePointcloud(output_path, frame_id, frame.scan_.cloud);
 
   // read the pointcloud back in and run the same test we did above for the
   // LoadPointcloud function to make sure the points are the same
-  kmc::Path const pointcloud_file(
-      output_path / kmc::Path(kmc::IdToZeroPaddedString(frame_id) + ".bin"));
+  kmc::Path const pointcloud_file(output_path / kmc::Path(kmc::IdToZeroPaddedString(frame_id) + ".bin"));
   kmc::Pointcloud const cloud = kmc::LoadPointcloud(pointcloud_file);
 
   ASSERT_EQ(cloud.rows(), 123397);
