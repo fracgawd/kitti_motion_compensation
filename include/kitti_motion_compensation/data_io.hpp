@@ -10,6 +10,9 @@ Time LoadTimeStamp(Path const timestamp_file, size_t const frame_id);
 
 Oxts LoadOxts(Path const folder, size_t const frame_id);
 
+// Implementation adopted from https://github.com/utiasSTARS/pykitti/blob/master/pykitti/utils.py
+Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale);
+
 Pointcloud LoadPointcloud(Path const pointcloud_file);
 
 LidarScan LoadLidarScan(Path const folder, size_t const frame_id);

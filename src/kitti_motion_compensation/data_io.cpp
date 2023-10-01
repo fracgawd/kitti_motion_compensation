@@ -50,7 +50,38 @@ Oxts LoadOxts(Path const folder, size_t const frame_id) {
   // need for motion compensation :)
   std::vector<std::string> const oxts_tokens{TokenizeString(oxts_line)};
 
-  return Oxts{time, std::stod(oxts_tokens[8]), std::stod(oxts_tokens[9]), std::stod(oxts_tokens[10])};
+  return Oxts{time,
+              std::stod(oxts_tokens[0]),
+              std::stod(oxts_tokens[1]),
+              std::stod(oxts_tokens[2]),
+              std::stod(oxts_tokens[3]),
+              std::stod(oxts_tokens[4]),
+              std::stod(oxts_tokens[5]),
+              std::stod(oxts_tokens[8]),
+              std::stod(oxts_tokens[9]),
+              std::stod(oxts_tokens[10])};
+}
+
+Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale) {
+  // earth radius (approx.) in meters
+  double const earth_radius{6378137.0};
+
+  // mercator projection to get position
+  double const tx{scale * earth_radius * M_PI * odometry.lon / 180.0};
+  double const ty{scale * earth_radius * std::log(std::tan(M_PI * (90.0 + odometry.lat) / 360.0))};
+  double const tz{odometry.alt};
+
+  // use the Euler angles to get the rotation matrix
+  Eigen::Matrix3d const R{Eigen::AngleAxisd(odometry.yaw, Eigen::Vector3d::UnitX()) *
+                          Eigen::AngleAxisd(odometry.pitch, Eigen::Vector3d::UnitY()) *
+                          Eigen::AngleAxisd(odometry.roll, Eigen::Vector3d::UnitZ())};
+
+  // combine the translation and rotation into a homogeneous transform
+  Eigen::Affine3d pose{Eigen::Affine3d::Identity()};
+  pose = R * pose;
+  pose.translation() << tx, ty, tz;
+
+  return pose;
 }
 
 Pointcloud LoadPointcloud(Path const pointcloud_file) {

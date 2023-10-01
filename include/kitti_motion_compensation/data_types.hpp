@@ -22,6 +22,9 @@ typedef double Time;
 
 typedef std::filesystem::path Path;
 
+// This represents the 6 component rotation and pose vector as used in the lie algebra
+typedef Eigen::Matrix<double, 6, 1> Twist;
+
 //** structs **//
 
 struct Oxts {
@@ -29,6 +32,12 @@ struct Oxts {
 
   // See the "raw data development kit" README for an explanation of the
   // oxts files
+  double lat;
+  double lon;
+  double alt;
+  double roll;
+  double pitch;
+  double yaw;
   double vf;
   double vl;
   double vu;

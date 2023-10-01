@@ -22,6 +22,7 @@ set(SRC_FILES
     src/${PROJECT_NAME}/motion_compensation.cpp
     src/${PROJECT_NAME}/camera_model.cpp
     src/${PROJECT_NAME}/handlers.cpp
+    src/${PROJECT_NAME}/lie_algebra.cpp
     )
 
 # compile stuff in the core library #
@@ -58,3 +59,13 @@ add_executable(test_motion_compensation test/test_motion_compensation.cpp)
 target_include_directories(test_motion_compensation PRIVATE ${GTEST_INCLUDE_DIRS})
 # TODO(jack): remove opencv_libs
 target_link_libraries(test_motion_compensation PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
+
+add_executable(test_oxts_to_pose test/test_oxts_to_pose.cpp)
+target_include_directories(test_oxts_to_pose PRIVATE ${GTEST_INCLUDE_DIRS})
+# TODO(jack): remove opencv_libs
+target_link_libraries(test_oxts_to_pose PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
+
+add_executable(test_lie_algebra test/test_lie_algebra.cpp)
+target_include_directories(test_lie_algebra PRIVATE ${GTEST_INCLUDE_DIRS})
+# TODO(jack): remove opencv_libs
+target_link_libraries(test_lie_algebra PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})

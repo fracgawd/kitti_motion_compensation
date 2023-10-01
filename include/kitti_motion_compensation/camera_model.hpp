@@ -1,3 +1,5 @@
+#pragma once
+
 #include "kitti_motion_compensation/data_types.hpp"
 
 namespace kmc::viz {

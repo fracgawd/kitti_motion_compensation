@@ -13,6 +13,13 @@ TEST(DataIoTest, LoadOdometryProperly) {
 
   kmc::Oxts const odometry{frame.odometry_};
   ASSERT_EQ(odometry.stamp, 47072.349659964);
+  //
+  ASSERT_EQ(odometry.lat, 49.011212804408);
+  ASSERT_EQ(odometry.lon, 8.4228850417969);
+  ASSERT_EQ(odometry.alt, 112.83492279053);
+  ASSERT_EQ(odometry.roll, 0.022447);
+  ASSERT_EQ(odometry.pitch, 1e-05);
+  ASSERT_EQ(odometry.yaw, -1.2219096732051);
   ASSERT_EQ(odometry.vf, 3.5147680214713);
   ASSERT_EQ(odometry.vl, 0.037625160413037);
   ASSERT_EQ(odometry.vu, -0.03878884255623);

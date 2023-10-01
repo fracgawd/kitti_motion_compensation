@@ -6,7 +6,7 @@
 // TODO(jack): make test fixture
 kmc::Frame MakeMotionCompensationTestFrame() {
   // moving directly forward at 1m/s
-  kmc::Oxts const odometry{kmc::Time(0.0), 1.0, 0.0, 0.0};
+  kmc::Oxts const odometry{kmc::Time(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0};
 
   // This represents a very simple kitti scan. Counter clockwise starting to the
   // right of the car 5 meters, then right in front of the car at five meters,
