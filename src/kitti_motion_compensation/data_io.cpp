@@ -346,6 +346,7 @@ void MakeOutputImageFolders(Path const output_folder) {
   Path const image_00_folder{output_folder / Path("image_00")};
   if (not fs::is_directory(image_00_folder) || not fs::exists(image_00_folder)) {
     fs::create_directory(image_00_folder);
+    std::cout << "Creating directory: " << image_00_folder << std::endl;
   } else {
     std::cout << "The directory: " << image_00_folder
               << " already exists and you are probbaly about to overwrite the "
@@ -356,6 +357,7 @@ void MakeOutputImageFolders(Path const output_folder) {
   Path const image_01_folder{output_folder / Path("image_01")};
   if (not fs::is_directory(image_01_folder) || not fs::exists(image_01_folder)) {
     fs::create_directory(image_01_folder);
+    std::cout << "Creating directory: " << image_01_folder << std::endl;
   } else {
     std::cout << "The directory: " << image_01_folder
               << " already exists and you are probbaly about to overwrite the "
@@ -366,6 +368,7 @@ void MakeOutputImageFolders(Path const output_folder) {
   Path const image_02_folder{output_folder / Path("image_02")};
   if (not fs::is_directory(image_02_folder) || not fs::exists(image_02_folder)) {
     fs::create_directory(image_02_folder);
+    std::cout << "Creating directory: " << image_02_folder << std::endl;
   } else {
     std::cout << "The directory: " << image_02_folder
               << " already exists and you are probbaly about to overwrite the "
@@ -376,6 +379,7 @@ void MakeOutputImageFolders(Path const output_folder) {
   Path const image_03_folder{output_folder / Path("image_03")};
   if (not fs::is_directory(image_03_folder) || not fs::exists(image_03_folder)) {
     fs::create_directory(image_03_folder);
+    std::cout << "Creating directory: " << image_03_folder << std::endl;
   } else {
     std::cout << "The directory: " << image_03_folder
               << " already exists and you are probbaly about to overwrite the "

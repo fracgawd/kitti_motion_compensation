@@ -57,17 +57,26 @@ Tests are the best documentation I have for how the library is supposed to work.
     ./test_data_io 
     ./test_motion_compensation
 
-### Run Example
-There is at the moment only one simple example, you need to hardcode the paths and recompile it if you want to motion compensate the runs. Note that the motion compensated pointclouds will be written into a directory `data_motion_compensated` in the `velodyne_points` folder of each respective run.
+### Run Examples
+`motion_compensate_runs`: This is the core example which applies the algorithm to the dataset. It expects (just like everywhere else in his project) that the data follows the standard KITTI data structure. The motion compensated pointclouds will be saved in a new folder, adjacent to the original pointcloud folder, titled "data_motion_compensated".
 
-    ./motion_compensate_runs
+    # motion compensates all runs in given data directory
+    ./motion_compensate_runs ../assets/2011_09_26/
+
+    # motion compensate specific runs in given data directory
+    ./motion_compensate_runs ../assets/2011_09_26/ 2011_09_26_drive_0005_sync
+
+`./generate_projection_visualization_of_run`: This is a little example which will project the raw and motion compensated pointcloud on the images. This is a really nice way to visualize the effect of motion compensation. An example output is shown below, the effect of motion compensation are clearly visible on the two poles on the right side of the image.
+
+    # creates folders and writes image out to the current directory
+    ./generate_projection_visualization_of_run ../assets/2011_09_26/ 2011_09_26_drive_0005_sync/ .
+
+![](assets/0000000015_2011_09_26_drive_0104_sync.png)
 
 ## Notes
 Future work:
-* Projection error visualization
-* Rotational velocity calculation
 * CMake clean up
-* Install instructions/demos
+* Add trajectory based compensation
 
 I wrote this as a little contribution to the awesome open source robotics community and to help educate people; NOT to bash people for doing things "wrong".
 

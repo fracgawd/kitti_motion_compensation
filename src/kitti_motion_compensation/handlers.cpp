@@ -38,10 +38,11 @@ void MotionCompensateRun(Path const run_folder) {
     // cause that is when at least the lidar triggers the cameras. Not perfect
     // but close.
     Time const requested_time{frame.scan_.stamp_middle};
-    // TODO(jack): transfer intensities
     Pointcloud const motion_compensated_pointcloud{MotionCompensate(frame, requested_time)};
 
     WritePointcloud(data_folder, i, motion_compensated_pointcloud);
+
+    std::cout << "Motion compensated pointcloud number: " << i << std::endl;
   }
 }
 
