@@ -4,6 +4,8 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
+#include "kitti_motion_compensation/lie_algebra.hpp"
+#include "kitti_motion_compensation/motion_compensation.hpp"
 #include "kitti_motion_compensation/utils.hpp"
 
 namespace kmc {
@@ -27,10 +29,17 @@ Time LoadTimeStamp(Path const timestamp_file, size_t const frame_id) {
   return Time(MmHhSsToSeconds(stamp_i_tokens[1]));
 }
 
-Oxts LoadOxts(Path const folder, size_t const frame_id) {
-  // load the time stamp
-  Path const timestamp_file(folder / Path("oxts/timestamps.txt"));
-  Time const time{LoadTimeStamp(timestamp_file, frame_id)};
+std::optional<Oxts> LoadOxts(Path const folder, size_t const frame_id) {
+  // WARN(jack): This function is really not great. The problem is that it essentially decides if the `frame_id` is
+  // valid based on the ability of the oxts input stream to be opened. This hopefully will not work when the `frame_id`
+  // requests a frame that is not in the sequence. This really does happen all the time, and it works, but it is a
+  // brittle solution.
+  // An example of this brittleness is that the timestamp loading part had to be moved after the odometry loading part.
+  // The reason for this was that we need the early std::nullopt return to protect the `LoadTimeStamp` function from
+  // getting an invalid `frame_id`, because that function is not hardened against invalid frame ids. The real answer to
+  // the problem I am talking about to much is to harden all functions against invalid id access, but this would add a
+  // lot of boilerplate and complexity. The KITTI is so well structured, that I will provide what security I can, but I
+  // also need to count on the fact that people will use the functins within some limit of sanity.
 
   // load the odometry
   Path const oxts_file(folder / Path("oxts/data/" + IdToZeroPaddedString(frame_id) + ".txt"));
@@ -41,13 +50,14 @@ Oxts LoadOxts(Path const folder, size_t const frame_id) {
     std::getline(is_oxts, oxts_line);
     is_oxts.close();
   } else {
-    std::cout << "Failed to open oxts file: " << oxts_file << '\n';
-    exit(0);
+    std::cerr << "Failed to open oxts file: " << oxts_file << '\n';
+    return std::nullopt;
   }
 
-  // split the line up into the 30 individual values - values 8,9,10 are forward
-  // velocity (vf), left velocity (vl) and upward velocity (vu) which is what we
-  // need for motion compensation :)
+  // load the time stamp
+  Path const timestamp_file(folder / Path("oxts/timestamps.txt"));
+  Time const time{LoadTimeStamp(timestamp_file, frame_id)};
+
   std::vector<std::string> const oxts_tokens{TokenizeString(oxts_line)};
 
   return Oxts{time,
@@ -72,9 +82,9 @@ Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale) {
   double const tz{odometry.alt};
 
   // use the Euler angles to get the rotation matrix
-  Eigen::Matrix3d const R{Eigen::AngleAxisd(odometry.yaw, Eigen::Vector3d::UnitX()) *
+  Eigen::Matrix3d const R{Eigen::AngleAxisd(odometry.yaw, Eigen::Vector3d::UnitZ()) *
                           Eigen::AngleAxisd(odometry.pitch, Eigen::Vector3d::UnitY()) *
-                          Eigen::AngleAxisd(odometry.roll, Eigen::Vector3d::UnitZ())};
+                          Eigen::AngleAxisd(odometry.roll, Eigen::Vector3d::UnitX())};
 
   // combine the translation and rotation into a homogeneous transform
   Eigen::Affine3d pose{Eigen::Affine3d::Identity()};
@@ -84,7 +94,7 @@ Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale) {
   return pose;
 }
 
-Pointcloud LoadPointcloud(Path const pointcloud_file) {
+std::tuple<Pointcloud, VectorXd> LoadPointcloud(Path const pointcloud_file) {
   // this function is basically taken directly from the "devkit_raw_data" README
 
   // allocate 4 MB buffer (only ~130*4*4 KB are needed)
@@ -103,11 +113,14 @@ Pointcloud LoadPointcloud(Path const pointcloud_file) {
   num = fread(data, sizeof(float), num, stream) / 4;
 
   Pointcloud pointcloud = Eigen::MatrixX4d(num, 4);
-  for (int32_t i = 0; i < num; i++) {
+  VectorXd intensities = VectorXd(num);
+  for (int32_t i = 0; i < num; ++i) {
     pointcloud.row(i)(0) = *px;
     pointcloud.row(i)(1) = *py;
     pointcloud.row(i)(2) = *pz;
-    pointcloud.row(i)(3) = *pr;
+    pointcloud.row(i)(3) = 1.0;  // homogenous component
+
+    intensities(i) = *pr;
 
     px += 4;
     py += 4;
@@ -116,7 +129,16 @@ Pointcloud LoadPointcloud(Path const pointcloud_file) {
   }
   fclose(stream);
 
-  return pointcloud;
+  return {pointcloud, intensities};
+}
+
+VectorXd GetPseudoTimeStamps(Pointcloud const &cloud, Time const start_time, Time const end_time) {
+  VectorXd timestamps = VectorXd(cloud.rows());
+  for (Eigen::Index i{0}; i < cloud.rows(); ++i) {
+    timestamps(i) = GetPseudoTimeStamp(cloud.row(i), start_time, end_time);
+  }
+
+  return timestamps;
 }
 
 LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
@@ -131,10 +153,54 @@ LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
   Time const end_time{LoadTimeStamp(end_timestamp_file, frame_id)};
 
   Path const pointcloud_file(folder / Path("velodyne_points/data/" + IdToZeroPaddedString(frame_id) + ".bin"));
+  auto const [pointcloud, intensities] = LoadPointcloud(pointcloud_file);
+  VectorXd const timestamps{GetPseudoTimeStamps(pointcloud, start_time, end_time)};
 
-  Pointcloud const pointcloud{LoadPointcloud(pointcloud_file)};
+  return LidarScan{start_time, middle_time, end_time, pointcloud, intensities, timestamps};
+}
 
-  return LidarScan{start_time, middle_time, end_time, pointcloud};
+Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder, bool const to_cam) {
+  kmc::Path calibration_file;
+  if (to_cam) {
+    calibration_file = (data_folder / kmc::Path("calib_velo_to_cam.txt"));
+  } else {
+    calibration_file = (data_folder / kmc::Path("calib_imu_to_velo.txt"));
+  }
+
+  std::ifstream calibration_is(calibration_file);
+
+  if (not calibration_is.is_open()) {
+    std::cout << "Failed to open camera calibration file: " << calibration_file << '\n';
+    exit(0);
+  }
+
+  // throw out the first line that contains meta information
+  std::string calibration_line;
+  std::getline(calibration_is, calibration_line);
+
+  // R
+  std::getline(calibration_is, calibration_line);
+  std::vector<std::string> R_tokens{kmc::TokenizeString(calibration_line)};
+
+  Eigen::Matrix3d R;
+  R << std::stod(R_tokens[1]), std::stod(R_tokens[2]), std::stod(R_tokens[3]), std::stod(R_tokens[4]),
+      std::stod(R_tokens[5]), std::stod(R_tokens[6]), std::stod(R_tokens[7]), std::stod(R_tokens[8]),
+      std::stod(R_tokens[9]);
+
+  // T
+  std::getline(calibration_is, calibration_line);
+  std::vector<std::string> T_tokens{kmc::TokenizeString(calibration_line)};
+
+  Eigen::Vector3d T;
+  T << std::stod(T_tokens[1]), std::stod(T_tokens[2]), std::stod(T_tokens[3]);
+
+  // transform from lidar frame to camera_00
+  Eigen::Affine3d tf_c00_lo{Eigen::Affine3d::Identity()};
+
+  tf_c00_lo = R * tf_c00_lo;
+  tf_c00_lo.translation() = T;
+
+  return tf_c00_lo;
 }
 
 Image LoadImage(Path const folder, std::string const camera, size_t const frame_id) {
@@ -178,9 +244,91 @@ Images LoadImages(Path const folder, size_t const frame_id) {
   return Images{img_00, img_01, img_02, img_03};
 }
 
+Affine3d InterpolatePose(Affine3d const &pose_0, Affine3d const &pose_1, double const x) {
+  // Given two poses, pose_0 and pose_1, get a pose somewhere in between. The fraction of the distance between the two
+  // poses is specified by "x" (0<x<1)
+  //
+  // If you want to think about is on a very simplified level, but that still capture the essence, this function does
+  // the following (poses don't really work like this, but it helps understanding -_-):
+  //
+  //      pose_interpolated = pose_0 + (pose_1 - pose_0) * x
+
+  if ((x < 0) or (1 < x)) {
+    std::cerr << "You gave an invalid interpolation fraction: " << x
+              << " -_- you are only allowed to interpolate within two poses, "
+                 "not further than that."
+              << std::endl;
+    throw std::invalid_argument("314524635");
+  }
+
+  kmc::Twist const delta_pose{x * kmc::lie::Log(pose_0.inverse() * pose_1)};
+
+  return pose_0 * kmc::lie::Exp(delta_pose);
+}
+
+Affine3d InterpolateFramePose(kmc::Oxts const &odometry_0, kmc::Oxts const &odometry_1, kmc::Time requested_time) {
+  // This if condition will really only handle the case when an edge frame (N=0 or N=n) has the same odometry loaded
+  // twice. Then we can just return the same pose, and protect the function from a divide by zero below because the
+  // timestamps of the odometry will be the same.
+  if (odometry_0.stamp == odometry_1.stamp) {
+    return kmc::OxtsToPose(odometry_0);  // could also return the pose from `odometry_1`, they are the same
+  }
+
+  double const x{(requested_time - odometry_0.stamp) / (odometry_1.stamp - odometry_0.stamp)};
+
+  return InterpolatePose(kmc::OxtsToPose(odometry_0), kmc::OxtsToPose(odometry_1), x);
+}
+
+Frame MakeFrame(kmc::Oxts const &odometry_n_m_1, kmc::Oxts const &odometry_n, kmc::Oxts const &odometry_n_p_1,
+                kmc::LidarScan const &lidar_scan, std::optional<kmc::Images> const camera_images) {
+  // odometry_n_m_1 - oxts packet of the previous frame (n_m_1 = "n minus 1")
+  // odometry_n - oxts of the current frame (n), usually happens at around the middle of the scan
+  // odometry_n_p_1 - oxts packet of the next frame (n_p_1 = "n plus 1")
+
+  // Because we do not directly get the pose of the sensor at the start and end of the scan we need to interpolate in
+  // between the nearest odometry measurements. For the start of the scan that will be "n-1" and "n" and for the end of
+  // the scan that will be "n" and "n+1".
+
+  Affine3d const scan_start_pose{InterpolateFramePose(odometry_n_m_1, odometry_n, lidar_scan.stamp_start)};
+  Affine3d const scan_end_pose{InterpolateFramePose(odometry_n, odometry_n_p_1, lidar_scan.stamp_end)};
+
+  return Frame(scan_start_pose, scan_end_pose, lidar_scan, camera_images);
+}
+
 Frame LoadSingleFrame(Path const data_folder, size_t const frame_id, bool const load_images) {
-  // load oxts
-  Oxts const odometry{LoadOxts(data_folder, frame_id)};
+  // TODO(jack): what about const with std::optional
+  // TODO(jack): are the statements about which part of the cloud can and cannot be motion compensated correct?
+  // TODO(jack): refactor the odometry loading thing into its own helper function
+
+  std::array<Oxts, 3> odometry;
+  for (int i{-1}; i <= 1; ++i) {
+    // TODO(jack): use fancy "if with initializtion"
+    std::optional<Oxts> odometry_i{LoadOxts(data_folder, frame_id + i)};
+
+    if (odometry_i.has_value()) {
+      // For all non-edge frames (1 -> n-1), this is the only condition that should execute.
+      odometry[i + 1] = odometry_i.value();
+    } else if (-1 == i) {
+      // This is the failure that should only happen when we attempt to load the first frame of a sequence. Because
+      // there is no n-1 Oxts packet, we just load the first Oxts packet of the sequence and fill it with that. This
+      // means that the first half of the scan, before the first Oxts packet was recieved, cannot be motion compensated.
+      std::optional<Oxts> odometry_0{LoadOxts(data_folder, frame_id + (i + 1))};
+      if (not odometry_0.has_value()) {
+        std::cerr << "Could not load replacement edge frame (frame(-1)) Oxts packet :()" << std::endl;
+        continue;  // WARN(jack); is continue the right behavior?
+      }
+      odometry[i + 1] = odometry_0.value();
+    } else if (1 == i) {
+      // This is similar to the failure before, except that now we are at the last frame of the sequence, and can only
+      // compensate the first half.
+      std::optional<Oxts> odometry_n{LoadOxts(data_folder, frame_id + (i - 1))};
+      if (not odometry_n.has_value()) {
+        std::cerr << "Could not load replacement edge frame (frame(n+1)) Oxts packet :()" << std::endl;
+        continue;  // WARN(jack); is continue the right behavior?
+      }
+      odometry[i + 1] = odometry_n.value();
+    }
+  }
 
   // load scan
   LidarScan const lidar_scan{LoadLidarScan(data_folder, frame_id)};
@@ -188,13 +336,14 @@ Frame LoadSingleFrame(Path const data_folder, size_t const frame_id, bool const 
   // load images if requested and return
   if (load_images) {
     Images const images{LoadImages(data_folder, frame_id)};
-    return Frame(odometry, lidar_scan, images);
+    return MakeFrame(odometry[0], odometry[1], odometry[2], lidar_scan, images);
   } else {
-    return Frame(odometry, lidar_scan);
+    return MakeFrame(odometry[0], odometry[1], odometry[2], lidar_scan);
   }
 }
 
-void WritePointcloud(Path const data_folder, size_t const frame_id, Pointcloud const &pointcloud) {
+void WritePointcloud(Path const data_folder, size_t const frame_id, Pointcloud const &pointcloud,
+                     VectorXd const &intensities) {
   // I tried to write this function like the LoadPointcloud function but in
   // reverse. It didn't work and I ended up stumbling around the web for a
   // little bit. Current code is modeled after
@@ -205,7 +354,7 @@ void WritePointcloud(Path const data_folder, size_t const frame_id, Pointcloud c
   std::ofstream out;
   out.open(pointcloud_file, std::ios::out | std::ios::binary);
 
-  int32_t num_points = pointcloud.rows();
+  int32_t const num_points = pointcloud.rows();
   for (int32_t i = 0; i < num_points; i++) {
     auto const point = pointcloud.row(i);
     float x{static_cast<float>(point(0))};
@@ -214,7 +363,7 @@ void WritePointcloud(Path const data_folder, size_t const frame_id, Pointcloud c
     out.write(reinterpret_cast<const char *>(&x), sizeof(float));
     x = static_cast<float>(point(2));
     out.write(reinterpret_cast<const char *>(&x), sizeof(float));
-    x = static_cast<float>(point(3));
+    x = static_cast<float>(intensities(i));
     out.write(reinterpret_cast<const char *>(&x), sizeof(float));
   }
   out.close();
@@ -331,44 +480,6 @@ CameraCalibrations LoadCameraCalibrations(kmc::Path const data_folder) {
 
   return CameraCalibrations{camera_calibrations[0], camera_calibrations[1], camera_calibrations[2],
                             camera_calibrations[3]};
-}
-
-Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder) {
-  kmc::Path const calibration_file(data_folder / kmc::Path("calib_velo_to_cam.txt"));
-  std::ifstream calibration_is(calibration_file);
-
-  if (not calibration_is.is_open()) {
-    std::cout << "Failed to open camera calibration file: " << calibration_file << '\n';
-    exit(0);
-  }
-
-  // throw out the first line that contains meta information
-  std::string calibration_line;
-  std::getline(calibration_is, calibration_line);
-
-  // R
-  std::getline(calibration_is, calibration_line);
-  std::vector<std::string> R_tokens{kmc::TokenizeString(calibration_line)};
-
-  Eigen::Matrix3d R;
-  R << std::stod(R_tokens[1]), std::stod(R_tokens[2]), std::stod(R_tokens[3]), std::stod(R_tokens[4]),
-      std::stod(R_tokens[5]), std::stod(R_tokens[6]), std::stod(R_tokens[7]), std::stod(R_tokens[8]),
-      std::stod(R_tokens[9]);
-
-  // T
-  std::getline(calibration_is, calibration_line);
-  std::vector<std::string> T_tokens{kmc::TokenizeString(calibration_line)};
-
-  Eigen::Vector3d T;
-  T << std::stod(T_tokens[1]), std::stod(T_tokens[2]), std::stod(T_tokens[3]);
-
-  // transform from lidar frame to camera_00
-  Eigen::Affine3d tf_c00_lo{Eigen::Affine3d::Identity()};
-
-  tf_c00_lo = R * tf_c00_lo;
-  tf_c00_lo.translation() = T;
-
-  return tf_c00_lo;
 }
 
 void MakeOutputImageFolders(Path const output_folder) {

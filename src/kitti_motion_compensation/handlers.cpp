@@ -37,10 +37,10 @@ void MotionCompensateRun(Path const run_folder) {
     // to each respective image time. We just choose the middle of the scan
     // cause that is when at least the lidar triggers the cameras. Not perfect
     // but close.
-    Time const requested_time{frame.scan_.stamp_middle};
-    Pointcloud const motion_compensated_pointcloud{MotionCompensate(frame, requested_time)};
+    Time const requested_time{frame.scan.stamp_middle};
+    Pointcloud const motion_compensated_pointcloud{MotionCompensateFrame(frame, requested_time)};
 
-    WritePointcloud(data_folder, i, motion_compensated_pointcloud);
+    WritePointcloud(data_folder, i, motion_compensated_pointcloud, frame.scan.intensities);
 
     std::cout << "Motion compensated pointcloud number: " << i << std::endl;
   }
@@ -62,10 +62,10 @@ void GenerateProjectionVisualizationOfRun(viz::CameraCalibrations const camera_c
     Images const projected_imgs_raw{viz::ProjectPointcloudOnFrame(frame, camera_calibrations, lidar_extrinsics)};
 
     // motion compensate the pointcloud and edit frame
-    Time const requested_time{frame.scan_.stamp_middle};
-    Pointcloud const motion_compensated_pointcloud{MotionCompensate(frame, requested_time)};
+    Time const requested_time{frame.scan.stamp_middle};
+    Pointcloud const motion_compensated_pointcloud{MotionCompensateFrame(frame, requested_time)};
 
-    frame.scan_.cloud = motion_compensated_pointcloud;
+    frame.scan.cloud = motion_compensated_pointcloud;
 
     // project the motion compensated pointcloud
     Images const projected_imgs_mc{viz::ProjectPointcloudOnFrame(frame, camera_calibrations, lidar_extrinsics)};

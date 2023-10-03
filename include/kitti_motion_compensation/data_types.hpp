@@ -10,20 +10,25 @@ namespace kmc {
 
 //** typdefs **//
 
-// Note that this is a pointcloud *WITH* itensity values, not just a set of 3D
-// points
-typedef Eigen::MatrixX4d Pointcloud;
+// Note that this is homogeneous set of points (the last column is just 1)
+using Pointcloud = Eigen::MatrixX4d;
 
 // Yea I know I know, I would have liked to use some fancy official time
 // tracking structure, but assuming there are no recordings that cross midnight,
 // and that microsecond preciscion is enough, than we can just use double -_-
 // I am pretty sure I will regret this decision later :()
-typedef double Time;
+using Time = double;
 
-typedef std::filesystem::path Path;
+using Path = std::filesystem::path;
 
 // This represents the 6 component rotation and pose vector as used in the lie algebra
-typedef Eigen::Matrix<double, 6, 1> Twist;
+using Twist = Eigen::Matrix<double, 6, 1>;
+
+using Affine3d = Eigen::Affine3d;
+using MatrixX4d = Eigen::MatrixX4d;
+using VectorXd = Eigen::VectorXd;
+using Vector4d = Eigen::Vector4d;
+using Index = Eigen::Index;
 
 //** structs **//
 
@@ -49,6 +54,8 @@ struct LidarScan {
   Time stamp_end;
 
   Pointcloud cloud;
+  VectorXd intensities;  // intrinsic part of the measurement (at least for KITTI)
+  VectorXd timestamps;   // calculated value (KITTI -should- have included per-point timestamps -_-)
 };
 
 struct Image {
@@ -67,18 +74,20 @@ struct Images {
 //** data structures with some logic **//
 
 struct Frame {
-  Frame(Oxts odometry, LidarScan scan, std::optional<Images> images = std::nullopt)
-      : odometry_{odometry}, scan_{scan}, images_{images} {}
+  Frame(Affine3d const &start_pose, Affine3d const &end_pose, kmc::LidarScan const &lidar_scan,
+        std::optional<kmc::Images> const camera_images = std::nullopt)
+      : T_start{start_pose}, T_end{end_pose}, scan{lidar_scan}, images{camera_images} {}
+  Affine3d T_start;  // the SE3 pose at the start of the scan (at timestamp scan.scan_start)
+  Affine3d T_end;    // the SE3 pose at the end of the scan (at timestamp scan.scan_end)
 
-  Oxts odometry_;
-  LidarScan scan_;
+  kmc::LidarScan scan;
 
   // for people who just want to process the pointclouds, they don't need to
   // load the images, but there are probably enough times where someone will
   // want to project a pointcloud onto one of the images to visualize the effect
   // of the motion compensation that we will build the repo with the images as
   // an optional part of the frame.
-  std::optional<Images> images_;
+  std::optional<kmc::Images> images;
 };
 
 }  // namespace kmc

@@ -3,6 +3,7 @@ project(kitti_motion_compensation)
 
 # some configurationfor general compiler settings #
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS -O3)
 add_compile_options(-Wall -Wextra -pedantic -Werror -Wl,--fatal-warnings)
 
 # find packages we need #
@@ -38,7 +39,7 @@ target_link_libraries(
     # ${OpenCV_LIBS} # TODO(jack): why can I not do this???
 )
 
-# compile some examples #
+# compile some examples 
 add_executable(motion_compensate_runs examples/motion_compensate_runs.cpp)
 target_include_directories(motion_compensate_runs PRIVATE ${INCLUDE_DIRECTORIES})
 # TODO(jack): remove opencv_libs

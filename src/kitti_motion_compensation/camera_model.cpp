@@ -14,10 +14,12 @@ Image ProjectPointcloudOnImage(Eigen::MatrixX4d const &pointcloud_c00_rect, Imag
   cv::Mat image_projection{image.image.clone()};
   for (Eigen::Index i{0}; i < pixels.rows(); ++i) {
     double const distance_in_front_of_camera{pointcloud_c00_rect.row(i)(2)};
+    double const distance_below_camera{pointcloud_c00_rect.row(i)(1)};  // filter out ground points
     // Only points in front of the camera are valid. All points in front of the
     // image but outside the image height-width are automaticall handled by
     // opencv - the z coordinate is the direction perpendicular to the camera
-    if (distance_in_front_of_camera < 0.01 or distance_in_front_of_camera > max_range) {
+    if ((distance_in_front_of_camera < 0.01) or (distance_in_front_of_camera > max_range) or
+        (distance_below_camera > 1.25)) {
       continue;
     }
 
@@ -48,7 +50,7 @@ Images ProjectPointcloudOnFrame(Frame const &frame, CameraCalibrations const cam
   // In this function, we do the "R_rect_00 * (R|T)_velo_to_cam * X" part
 
   // lo = "lidar optical" frame - this is the velodyne measurement frame
-  Pointcloud const &pointcloud_lo{frame.scan_.cloud};
+  Pointcloud const &pointcloud_lo{frame.scan.cloud};
 
   Eigen::Index const num_points{pointcloud_lo.rows()};
 
@@ -81,13 +83,13 @@ Images ProjectPointcloudOnFrame(Frame const &frame, CameraCalibrations const cam
   // Now project the pointcloud onto all four images using their respective
   // intrinsics
   Image const image_00_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_00, camera_calibrations.camera_00)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images->image_00, camera_calibrations.camera_00)};
   Image const image_01_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_01, camera_calibrations.camera_01)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images->image_01, camera_calibrations.camera_01)};
   Image const image_02_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_02, camera_calibrations.camera_02)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images->image_02, camera_calibrations.camera_02)};
   Image const image_03_projection{
-      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images_->image_03, camera_calibrations.camera_03)};
+      ProjectPointcloudOnImage(pointcloud_c00_rect_h, frame.images->image_03, camera_calibrations.camera_03)};
 
   return Images{image_00_projection, image_01_projection, image_02_projection, image_03_projection};
 }

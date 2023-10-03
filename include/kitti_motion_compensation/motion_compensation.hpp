@@ -10,11 +10,11 @@ double FractionOfScanCompleted(Eigen::Vector4d const point);
 
 Time GetPseudoTimeStamp(Eigen::Vector4d const point, Time const scan_start, Time const scan_end);
 
-Eigen::Vector4d MotionCompensatePoint(Eigen::Vector4d const point, Time const point_stamp, Oxts const odometry,
-                                      Time const requested_time);
+Vector4d MotionCompensatePoint(Vector4d const& point, Twist const& delta_pose, double const x);
 
-Pointcloud MotionCompensate(Frame frame, Time const requested_time);
+Vector4d MotionCompensateFramePoint(Vector4d const& point, Time const point_stamp, Twist const& frame_delta_pose,
+                                    Time const frame_start, Time const frame_end, Time const requested_time);
 
-Pointcloud MotionCompensate(LidarScan const &lidar_scan, Oxts const odometry, Time const requested_time);
+Pointcloud MotionCompensateFrame(Frame const& frame, Time const requested_time);
 
 }  // namespace kmc

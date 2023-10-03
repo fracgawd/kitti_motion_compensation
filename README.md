@@ -76,7 +76,7 @@ Tests are the best documentation I have for how the library is supposed to work.
 ## Notes
 Future work:
 * CMake clean up
-* Add trajectory based compensation
+* Handle edge case frame motion compensation - currently incorrect
 
 I wrote this as a little contribution to the awesome open source robotics community and to help educate people; NOT to bash people for doing things "wrong".
 

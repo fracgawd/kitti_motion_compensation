@@ -1,13 +1,8 @@
 #include "kitti_motion_compensation/motion_compensation.hpp"
 
-namespace kmc {
+#include "kitti_motion_compensation/lie_algebra.hpp"
 
-bool DataIsSynchronized(Time const stamp_1, Time const stamp_2, Time const stamp_3) {
-  // The lidar scans at 10Hz and the data is all synchonrized, so the timestamp
-  // gap should never be larger than 0.1s. It is probably usually much smaller
-  // actually :)
-  return (std::abs(stamp_1 - stamp_2) < 0.10) and (std::abs(stamp_2 - stamp_3) < 0.10);
-}
+namespace kmc {
 
 double FractionOfScanCompleted(Eigen::Vector4d const point) {
   // This function is where we deal with the fundmanetal problem that makes
@@ -56,48 +51,49 @@ Time GetPseudoTimeStamp(Eigen::Vector4d const point, Time const scan_start, Time
   double const position_in_scan{FractionOfScanCompleted(point)};
   Time const scan_duration{scan_end - scan_start};
 
-  return scan_start + (scan_duration * position_in_scan);
+  return scan_start + (position_in_scan * scan_duration);
 }
 
-Eigen::Vector4d MotionCompensatePoint(Eigen::Vector4d const point, Time const point_stamp, Oxts const odometry,
-                                      Time const requested_time) {
-  Time const delta_time{requested_time - point_stamp};
+Vector4d MotionCompensatePoint(Vector4d const& point, Twist const& delta_pose, double const x) {
+  // This function considers that there is some trajectory, in between two poses, that we want to interpolate on. The
+  // total distance between the two poses is `delta_pose` and `x` is the fraction of total distance we actually want to
+  // transform the point with.
+  //
+  // TODO(jack): what are the valid values of x?
 
-  Eigen::Vector3d const delta_pose{delta_time * Eigen::Vector3d{odometry.vf, odometry.vl, odometry.vu}};
+  Twist const delta_x{x * delta_pose};         // se3
+  Affine3d const tf_delta{lie::Exp(delta_x)};  // SE3
 
-  Eigen::Vector4d motion_compensated_point{point};
-  motion_compensated_point.topRows(3) = delta_pose + motion_compensated_point.topRows(3);
-
-  return motion_compensated_point;
+  return (tf_delta * point);
 }
 
-Pointcloud MotionCompensate(Frame frame, Time const requested_time) {
-  return MotionCompensate(frame.scan_, frame.odometry_, requested_time);
+Vector4d MotionCompensateFramePoint(Vector4d const& point, Time const point_stamp, Twist const& frame_delta_pose,
+                                    Time const frame_start, Time const frame_end, Time const requested_time) {
+  // TODO(jack): what are the valid values of x?
+  // TODO(jack): use single time fraction interpolation function?
+
+  double const x{(requested_time - point_stamp) / (frame_end - frame_start)};
+
+  return MotionCompensatePoint(point, frame_delta_pose, x);
 }
 
-Pointcloud MotionCompensate(LidarScan const &lidar_scan, Oxts const odometry, Time const requested_time) {
-  if (not DataIsSynchronized(lidar_scan.stamp_middle, odometry.stamp, requested_time)) {
-    std::cout << "The requested synchronization was not within the time tolerance. "
-                 "Are you sure your requested time is within the LidarScan? Are "
-                 "you sure your odometry is for the LidarScan you provided?"
-              << '\n';
-    exit(0);
-  }
+Pointcloud MotionCompensateFrame(Frame const& frame, Time const requested_time) {
+  LidarScan const& scan{frame.scan};
+  Time const frame_start{scan.stamp_start};
+  Time const frame_end{scan.stamp_end};
 
-  Pointcloud const &cloud{lidar_scan.cloud};
-  Time const scan_start{lidar_scan.stamp_start};
-  Time const scan_end{lidar_scan.stamp_end};
+  // calculate the total motion delta experienced during the frame capture. The compensation applied to all points in
+  // the frame will be some fraction of this value.
+  Twist const frame_delta_pose{kmc::lie::Log(frame.T_start.inverse() * frame.T_end)};
 
-  Pointcloud motion_compensated_cloud = Eigen::MatrixX4d(cloud.rows(), 4);
-  for (Eigen::Index i{0}; i < cloud.rows(); ++i) {
-    Eigen::Vector4d const point_i{cloud.row(i)};
-    Time const point_i_stamp{GetPseudoTimeStamp(point_i, scan_start, scan_end)};
+  Index const num_points{scan.cloud.rows()};
+  Pointcloud motion_compensated_cloud = MatrixX4d(num_points, 4);
+  for (Index i{0}; i < num_points; ++i) {
+    Vector4d const point_i{scan.cloud.row(i)};
+    Time const stamp_i{scan.timestamps(i)};
 
-    Eigen::Vector4d const point_i_motion_compensated{
-        MotionCompensatePoint(point_i, point_i_stamp, odometry, requested_time)};
-
-    motion_compensated_cloud.row(i) = point_i_motion_compensated;
-    motion_compensated_cloud.row(i)(3) = cloud.row(i)(3);  // transfer intensity
+    motion_compensated_cloud.row(i) =
+        MotionCompensateFramePoint(point_i, stamp_i, frame_delta_pose, frame_start, frame_end, requested_time);
   }
 
   return motion_compensated_cloud;

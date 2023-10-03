@@ -20,7 +20,7 @@ int main(int const argc, char const* const argv[]) {
   std::string const output_dir{argv[3]};
 
   viz::CameraCalibrations const camera_calibrations{viz::LoadCameraCalibrations(data_dir)};
-  Eigen::Affine3d const lidar_extrinsics{viz::LoadLidarExtrinsics(data_dir)};
+  Eigen::Affine3d const lidar_extrinsics{LoadLidarExtrinsics(data_dir, true)};
 
   // When you ask yourself why this function is so slow - remember what it does:
   //

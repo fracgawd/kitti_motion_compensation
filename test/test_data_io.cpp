@@ -5,15 +5,19 @@
 #include "kitti_motion_compensation/data_types.hpp"
 #include "kitti_motion_compensation/utils.hpp"
 
+using namespace kmc;
+
 TEST(DataIoTest, LoadOdometryProperly) {
-  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
 
-  kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
+  std::optional<Oxts> const odometry_opt{kmc::LoadOxts(data_folder, frame_id)};
 
-  kmc::Oxts const odometry{frame.odometry_};
+  ASSERT_TRUE(odometry_opt.has_value());
+
+  Oxts const& odometry{odometry_opt.value()};
   ASSERT_EQ(odometry.stamp, 47072.349659964);
-  //
+
   ASSERT_EQ(odometry.lat, 49.011212804408);
   ASSERT_EQ(odometry.lon, 8.4228850417969);
   ASSERT_EQ(odometry.alt, 112.83492279053);
@@ -23,6 +27,15 @@ TEST(DataIoTest, LoadOdometryProperly) {
   ASSERT_EQ(odometry.vf, 3.5147680214713);
   ASSERT_EQ(odometry.vl, 0.037625160413037);
   ASSERT_EQ(odometry.vu, -0.03878884255623);
+}
+
+TEST(DataIoTest, LoadOdometryImproperly) {
+  Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  size_t const frame_id{4};
+
+  std::optional<Oxts> const odometry_opt{kmc::LoadOxts(data_folder, frame_id)};
+
+  ASSERT_FALSE(odometry_opt.has_value());
 }
 
 TEST(DataIoTest, LoadPointCloudProperly) {
@@ -36,23 +49,33 @@ TEST(DataIoTest, LoadPointCloudProperly) {
   // and the camera is triggered half way through the scan when the sweep is
   // facing towards the front:
   //    (middle-start)/0.10327 = 0.5
-  kmc::LidarScan const lidar_scan{frame.scan_};
+  kmc::LidarScan const lidar_scan{frame.scan};
   ASSERT_EQ(lidar_scan.stamp_start, 47072.283701593);
   ASSERT_EQ(lidar_scan.stamp_middle, 47072.335337762);
   ASSERT_EQ(lidar_scan.stamp_end, 47072.386973931);
 
   // check the length of the scan and the values of the first and last points
   ASSERT_EQ(lidar_scan.cloud.rows(), 123397);
-  auto const point_1{lidar_scan.cloud.row(0)};
+  ASSERT_EQ(lidar_scan.intensities.rows(), 123397);
+  ASSERT_EQ(lidar_scan.timestamps.rows(), 123397);
+
+  size_t const i1{0};
+  auto const point_1{lidar_scan.cloud.row(i1)};
   ASSERT_FLOAT_EQ(point_1(0), 22.7189998626709);
   ASSERT_FLOAT_EQ(point_1(1), 0.0309999994933605);
   ASSERT_FLOAT_EQ(point_1(2), 0.976999998092651);
-  ASSERT_FLOAT_EQ(point_1(3), 0.319999992847443);
-  auto const point_n{lidar_scan.cloud.row(123396)};
+  ASSERT_FLOAT_EQ(point_1(3), 1.0);
+  ASSERT_FLOAT_EQ(lidar_scan.intensities(i1), 0.319999992847443);
+  ASSERT_FLOAT_EQ(lidar_scan.timestamps(i1), 47072.336);
+
+  size_t const i2{123396};
+  auto const point_n{lidar_scan.cloud.row(i2)};
   ASSERT_FLOAT_EQ(point_n(0), 5.63399982452393);
   ASSERT_FLOAT_EQ(point_n(1), -1.39499998092651);
   ASSERT_FLOAT_EQ(point_n(2), -2.58999991416931);
-  ASSERT_FLOAT_EQ(point_n(3), 0.0);
+  ASSERT_FLOAT_EQ(point_n(3), 1.0);
+  ASSERT_FLOAT_EQ(lidar_scan.intensities(i2), 0.0);
+  ASSERT_FLOAT_EQ(lidar_scan.timestamps(i2), 47072.332);
 }
 
 TEST(DataIoTest, LoadImagesOptional) {
@@ -63,13 +86,13 @@ TEST(DataIoTest, LoadImagesOptional) {
   // load and test a frame without images
   kmc::Frame const frame_without_images{kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
 
-  ASSERT_FALSE(frame_without_images.images_.has_value());
+  ASSERT_FALSE(frame_without_images.images.has_value());
 
   // load and test a frame with images
   load_images = true;
   kmc::Frame const frame_with_images{kmc::LoadSingleFrame(data_folder, frame_id, load_images)};
 
-  ASSERT_TRUE(frame_with_images.images_.has_value());
+  ASSERT_TRUE(frame_with_images.images.has_value());
 }
 
 TEST(DataIoTest, LoadImagesProperly) {
@@ -78,7 +101,7 @@ TEST(DataIoTest, LoadImagesProperly) {
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id, true)};
 
-  kmc::Images const images{frame.images_.value()};
+  kmc::Images const images{frame.images.value()};
   ASSERT_EQ(images.image_00.image.channels(),
             1);  // grayscale image has one channel
   ASSERT_EQ(images.image_02.image.channels(),
@@ -95,27 +118,34 @@ TEST(DataIoTest, SavePointcloud) {
 
   // write out the pointcloud using our WritePointcloud function
   kmc::Path const output_path{data_folder / kmc::Path("velodyne_points/data_motion_compensated")};
-  kmc::WritePointcloud(output_path, frame_id, frame.scan_.cloud);
+  kmc::WritePointcloud(output_path, frame_id, frame.scan.cloud, frame.scan.intensities);
 
   // read the pointcloud back in and run the same test we did above for the
   // LoadPointcloud function to make sure the points are the same
   kmc::Path const pointcloud_file(output_path / kmc::Path(kmc::IdToZeroPaddedString(frame_id) + ".bin"));
-  kmc::Pointcloud const cloud = kmc::LoadPointcloud(pointcloud_file);
+  auto const [cloud, intensities] = kmc::LoadPointcloud(pointcloud_file);
 
   ASSERT_EQ(cloud.rows(), 123397);
-  auto const point_1{cloud.row(0)};
+  ASSERT_EQ(intensities.rows(), 123397);
+
+  size_t const i1{0};
+  auto const point_1{cloud.row(i1)};
   ASSERT_FLOAT_EQ(point_1(0), 22.7189998626709);
   ASSERT_FLOAT_EQ(point_1(1), 0.0309999994933605);
   ASSERT_FLOAT_EQ(point_1(2), 0.976999998092651);
-  ASSERT_FLOAT_EQ(point_1(3), 0.319999992847443);
-  auto const point_n{cloud.row(123396)};
+  ASSERT_FLOAT_EQ(point_1(3), 1);
+  ASSERT_FLOAT_EQ(intensities(i1), 0.319999992847443);
+
+  size_t const i2{123396};
+  auto const point_n{cloud.row(i2)};
   ASSERT_FLOAT_EQ(point_n(0), 5.63399982452393);
   ASSERT_FLOAT_EQ(point_n(1), -1.39499998092651);
   ASSERT_FLOAT_EQ(point_n(2), -2.58999991416931);
-  ASSERT_FLOAT_EQ(point_n(3), 0.0);
+  ASSERT_FLOAT_EQ(point_n(3), 1.0);
+  ASSERT_FLOAT_EQ(intensities(i2), 0.0);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
