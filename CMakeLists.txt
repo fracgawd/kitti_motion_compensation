@@ -58,6 +58,7 @@ set(TESTS
     test_motion_compensation
     test_oxts_to_pose 
     test_lie_algebra
+    test_timestamp_mocking
 )
 
 foreach(TEST IN LISTS TESTS)

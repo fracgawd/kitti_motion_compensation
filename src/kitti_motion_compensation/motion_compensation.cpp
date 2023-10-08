@@ -4,6 +4,17 @@
 
 namespace kmc {
 
+double ScaledTimeDisplacment(Time const query_time, Time const anchor_time, Time const min_time, Time const max_time) {
+  // Calculate the scaled distance from `query_time` to `fixed_time`
+
+  if (min_time == max_time) {
+    std::cerr << "Division by zero, how did you mess up the min and max times?\n";
+    exit(-1);
+  }
+
+  return ((anchor_time - query_time) / (max_time - min_time));
+}
+
 Vector4d MotionCompensatePoint(Vector4d const& point, Twist const& delta_pose, double const x) {
   // This function considers that there is some trajectory, in between two poses, that we want to interpolate on. The
   // total distance between the two poses is `delta_pose` and `x` is the fraction of total distance we actually want to
@@ -21,7 +32,7 @@ Vector4d MotionCompensateFramePoint(Vector4d const& point, Time const point_stam
   // TODO(jack): what are the valid values of x?
   // TODO(jack): use single time fraction interpolation function?
 
-  double const x{(requested_time - point_stamp) / (frame_end - frame_start)};
+  double const x{ScaledTimeDisplacment(point_stamp, requested_time, frame_start, frame_end)};
 
   return MotionCompensatePoint(point, frame_delta_pose, x);
 }

@@ -8,7 +8,7 @@
 
 using namespace kmc;
 
-// TODO(jack): make test fixture
+// TODO(jack): make test fixture - this is copied in two places - BAD!!!
 Frame MakeMotionCompensationTestFrame() {
   // This is how the KITTI dataset is collected with respect to time, three scans shown for example:
   //
@@ -49,30 +49,35 @@ Frame MakeMotionCompensationTestFrame() {
   return MakeFrame(odometry_0, odometry_1, odometry_2, scan_1);
 }
 
-TEST(FractionOfScanCompletedTest, XXX) {
+TEST(ScaledTimeDisplacmentTest, XXX) {
   Frame const test_frame{MakeMotionCompensationTestFrame()};
 
-  Pointcloud const &test_cloud{test_frame.scan.cloud};
-
-  ASSERT_FLOAT_EQ(FractionOfScanCompleted(test_cloud.row(0)), 0.25);
-  ASSERT_FLOAT_EQ(FractionOfScanCompleted(test_cloud.row(1)), 0.5);
-  ASSERT_FLOAT_EQ(FractionOfScanCompleted(test_cloud.row(2)), 0.75);
-}
-
-TEST(PsuedoTimeStampTest, XXX) {
-  Frame const test_frame{MakeMotionCompensationTestFrame()};
-
-  Pointcloud const &test_cloud{test_frame.scan.cloud};
   Time const scan_start{test_frame.scan.stamp_start};
   Time const scan_end{test_frame.scan.stamp_end};
+  // The "anchor time" is named here to make it clear what it is, in the context of the `ScaledTimeDisplacment()`
+  // function. But what it really is refered to in the rest of the code is usually the `requested_time`, which is the
+  // point in time that we want to motion compensate the pointcloud too. Which is usally half way through the scan, when
+  // the cameras are triggered.
+  Time anchor_time{test_frame.scan.stamp_middle};
 
-  Time const point_1_stamp{GetPseudoTimeStamp(test_cloud.row(0), scan_start, scan_end)};
-  Time const point_2_stamp{GetPseudoTimeStamp(test_cloud.row(1), scan_start, scan_end)};
-  Time const point_3_stamp{GetPseudoTimeStamp(test_cloud.row(2), scan_start, scan_end)};
+  Time point_i_time{0.125};
+  double const x0{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
+  ASSERT_FLOAT_EQ(x0, 0.25);
 
-  ASSERT_FLOAT_EQ(point_1_stamp, 0.125);
-  ASSERT_FLOAT_EQ(point_2_stamp, 0.15);
-  ASSERT_FLOAT_EQ(point_3_stamp, 0.175);
+  point_i_time = 0.175;
+  double const x1{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
+  ASSERT_FLOAT_EQ(x1, -0.25);
+
+  // Change the anchor time now so it isn't centered in the middle
+  anchor_time = test_frame.scan.stamp_middle + 0.025;
+
+  point_i_time = 0.125;  // the query time simulate the individual point times
+  double const x2{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
+  ASSERT_FLOAT_EQ(x2, 0.50);
+
+  point_i_time = 0.2;  // the query time simulate the individual point times
+  double const x3{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
+  ASSERT_FLOAT_EQ(x3, -0.25);
 }
 
 TEST(MotionCompensationTest, XXX) {
@@ -126,10 +131,10 @@ Frame MakeMotionCompensationTestEdgeCaseFrame() {
   return MakeFrame(odometry_0, odometry_0, odometry_1, scan_0);
 }
 
-TEST(MotionCompensationTestEdgeCase, XXX) {
-  // TODO(jack): add edge case motion compensation logic
-  ASSERT_TRUE(false);
-}
+// TEST(MotionCompensationTestEdgeCase, XXX) {
+//   // TODO(jack): add edge case motion compensation logic
+//   ASSERT_TRUE(false);
+// }
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
