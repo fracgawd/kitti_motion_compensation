@@ -36,37 +36,31 @@ add_library(
 target_link_libraries(
     ${LIBRARY_NAME}
     Eigen3::Eigen
-    # ${OpenCV_LIBS} # TODO(jack): why can I not do this???
 )
 
-# compile some examples 
-add_executable(motion_compensate_runs examples/motion_compensate_runs.cpp)
-target_include_directories(motion_compensate_runs PRIVATE ${INCLUDE_DIRECTORIES})
-# TODO(jack): remove opencv_libs
-target_link_libraries(motion_compensate_runs PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
+# compile examples
+set(EXAMPLES 
+    generate_projection_visualization_of_run
+    motion_compensate_runs
+)
 
-add_executable(generate_projection_visualization_of_run examples/generate_projection_visualization_of_run.cpp)
-target_include_directories(generate_projection_visualization_of_run PRIVATE ${INCLUDE_DIRECTORIES})
-# TODO(jack): remove opencv_libs
-target_link_libraries(generate_projection_visualization_of_run PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
+foreach(EXAMPLE IN LISTS EXAMPLES)
+    add_executable(${EXAMPLE} examples/${EXAMPLE}.cpp)
+    target_include_directories(${EXAMPLE} PRIVATE ${INCLUDE_DIRECTORIES})
+    # TODO(jack): remove opencv_libs
+    target_link_libraries(${EXAMPLE} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
+endforeach()
 
-# compile the tests #
-add_executable(test_data_io test/test_data_io.cpp)
-target_include_directories(test_data_io PRIVATE ${GTEST_INCLUDE_DIRS})
-# TODO(jack): remove opencv_libs
-target_link_libraries(test_data_io PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
+# compile tests
+set(TESTS
+    test_data_io
+    test_motion_compensation
+    test_oxts_to_pose 
+    test_lie_algebra
+)
 
-add_executable(test_motion_compensation test/test_motion_compensation.cpp)
-target_include_directories(test_motion_compensation PRIVATE ${GTEST_INCLUDE_DIRS})
-# TODO(jack): remove opencv_libs
-target_link_libraries(test_motion_compensation PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
-
-add_executable(test_oxts_to_pose test/test_oxts_to_pose.cpp)
-target_include_directories(test_oxts_to_pose PRIVATE ${GTEST_INCLUDE_DIRS})
-# TODO(jack): remove opencv_libs
-target_link_libraries(test_oxts_to_pose PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
-
-add_executable(test_lie_algebra test/test_lie_algebra.cpp)
-target_include_directories(test_lie_algebra PRIVATE ${GTEST_INCLUDE_DIRS})
-# TODO(jack): remove opencv_libs
-target_link_libraries(test_lie_algebra PRIVATE ${PROJECT_NAME}_lib ${GTEST_LIBRARIES} pthread ${OpenCV_LIBS})
+foreach(TEST IN LISTS TESTS)
+    add_executable(${TEST} test/${TEST}.cpp)
+    target_include_directories(${TEST} PRIVATE ${GTEST_INCLUDE_DIRS})
+    target_link_libraries(${TEST} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+endforeach()
