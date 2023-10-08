@@ -20,6 +20,7 @@ include_directories(include
 set(SRC_FILES 
     src/${PROJECT_NAME}/utils.cpp
     src/${PROJECT_NAME}/data_io.cpp
+    src/${PROJECT_NAME}/timestamp_mocking.cpp
     src/${PROJECT_NAME}/motion_compensation.cpp
     src/${PROJECT_NAME}/camera_model.cpp
     src/${PROJECT_NAME}/handlers.cpp

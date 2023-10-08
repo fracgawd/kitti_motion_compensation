@@ -26,3 +26,11 @@ Eigen::Affine3d Exp(Twist const& xi);
 Twist Log(Eigen::Affine3d const& T);
 
 }  // namespace kmc::lie
+
+namespace kmc {
+
+Twist DeltaPose(Affine3d const& pose_0, Affine3d const& pose_1);
+
+Affine3d InterpolatedPose(Twist const& delta_pose, double const x);
+
+}  // namespace kmc

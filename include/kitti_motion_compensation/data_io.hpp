@@ -15,8 +15,6 @@ Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale = 1.0);
 
 std::tuple<Pointcloud, VectorXd> LoadPointcloud(Path const pointcloud_file);
 
-VectorXd GetPseudoTimeStamps(Pointcloud const &cloud, Time const start_time, Time const end_time);
-
 LidarScan LoadLidarScan(Path const folder, size_t const frame_id);
 
 Eigen::Affine3d LoadLidarExtrinsics(kmc::Path const data_folder, bool const to_cam);

@@ -103,3 +103,16 @@ Twist Log(Eigen::Affine3d const& T) {
 }
 
 }  // namespace kmc::lie
+
+namespace kmc {
+// TODO(jack): test all the lie algebra handlers
+
+Twist DeltaPose(Affine3d const& pose_0, Affine3d const& pose_1) { return lie::Log(pose_0.inverse() * pose_1); }
+
+Affine3d InterpolatedPose(Twist const& delta_pose, double const x) {
+  Twist const delta_pose_x{x * delta_pose};  // se3
+
+  return lie::Exp(delta_pose_x);  // SE3
+}
+
+}  // namespace kmc

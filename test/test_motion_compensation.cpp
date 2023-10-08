@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "kitti_motion_compensation/camera_model.hpp"
 #include "kitti_motion_compensation/data_io.hpp"
 #include "kitti_motion_compensation/data_types.hpp"
 #include "kitti_motion_compensation/lie_algebra.hpp"
 #include "kitti_motion_compensation/motion_compensation.hpp"
+#include "kitti_motion_compensation/timestamp_mocking.hpp"
 
 using namespace kmc;
 

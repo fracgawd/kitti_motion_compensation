@@ -77,6 +77,7 @@ Tests are the best documentation I have for how the library is supposed to work.
 Future work:
 * CMake clean up
 * Handle edge case frame motion compensation - currently incorrect
+* Add lie algebra helper/handlers testing
 
 I wrote this as a little contribution to the awesome open source robotics community and to help educate people; NOT to bash people for doing things "wrong".
 

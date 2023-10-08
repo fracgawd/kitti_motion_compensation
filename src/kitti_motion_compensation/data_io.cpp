@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "kitti_motion_compensation/lie_algebra.hpp"
-#include "kitti_motion_compensation/motion_compensation.hpp"
+#include "kitti_motion_compensation/timestamp_mocking.hpp"
 #include "kitti_motion_compensation/utils.hpp"
 
 namespace kmc {
@@ -132,15 +132,6 @@ std::tuple<Pointcloud, VectorXd> LoadPointcloud(Path const pointcloud_file) {
   return {pointcloud, intensities};
 }
 
-VectorXd GetPseudoTimeStamps(Pointcloud const &cloud, Time const start_time, Time const end_time) {
-  VectorXd timestamps = VectorXd(cloud.rows());
-  for (Eigen::Index i{0}; i < cloud.rows(); ++i) {
-    timestamps(i) = GetPseudoTimeStamp(cloud.row(i), start_time, end_time);
-  }
-
-  return timestamps;
-}
-
 LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
   // load the time stamps - start, middle and end of the scan - cameras are
   // triggered at the middle of the scan
@@ -261,9 +252,10 @@ Affine3d InterpolatePose(Affine3d const &pose_0, Affine3d const &pose_1, double 
     throw std::invalid_argument("314524635");
   }
 
-  kmc::Twist const delta_pose{x * kmc::lie::Log(pose_0.inverse() * pose_1)};
+  Twist const delta_pose{DeltaPose(pose_0, pose_1)};
+  Affine3d const tf_delta{InterpolatedPose(delta_pose, x)};
 
-  return pose_0 * kmc::lie::Exp(delta_pose);
+  return pose_0 * tf_delta;
 }
 
 Affine3d InterpolateFramePose(kmc::Oxts const &odometry_0, kmc::Oxts const &odometry_1, kmc::Time requested_time) {
