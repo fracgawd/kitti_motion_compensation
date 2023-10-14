@@ -94,43 +94,57 @@ Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale) {
   return pose;
 }
 
-std::tuple<Pointcloud, VectorXd> LoadPointcloud(Path const pointcloud_file) {
-  // this function is basically taken directly from the "devkit_raw_data" README
+///////////////////////////////////////////////////////////////
 
-  // allocate 4 MB buffer (only ~130*4*4 KB are needed)
-  int32_t num = 1000000;
-  float *data = (float *)malloc(num * sizeof(float));
+// Each scan is about 2MB. Each point consists of 4 floats. Each float is of course 4 bytes. Therefore in each scan we
+// can calculate there are about 125,000 points. This is roughly the number points actually found in the pointcloud.
+//
+// To be safe, lets build in a safety factor of two and allocate 4MB of memory for the loader, which corresponds to
+// 250,000 points.
+KittiPclLoader::KittiPclLoader() : data_{new float[pcl_buffer_size]} {}
 
-  // pointers
-  float *px = data + 0;
-  float *py = data + 1;
-  float *pz = data + 2;
-  float *pr = data + 3;
+KittiPclLoader::~KittiPclLoader() { delete[] data_; }
 
-  // load point cloud
-  FILE *stream;
-  stream = fopen(pointcloud_file.c_str(), "rb");
-  num = fread(data, sizeof(float), num, stream) / 4;
+std::tuple<Pointcloud, VectorXd> KittiPclLoader::LoadPointcloud(Path const &file) {
+  std::ifstream file_stream{file, std::ios::in | std::ios::binary | std::ios::ate};
+  if (not file_stream.is_open()) {
+    throw std::runtime_error("Unable to open requested KITTI pointcloud binary file: " + std::string{file});
+  }
 
-  Pointcloud pointcloud = Eigen::MatrixX4d(num, 4);
-  VectorXd intensities = VectorXd(num);
-  for (int32_t i = 0; i < num; ++i) {
-    pointcloud.row(i)(0) = *px;
-    pointcloud.row(i)(1) = *py;
-    pointcloud.row(i)(2) = *pz;
+  int64_t const num_bytes_loaded{file_stream.tellg()};
+  if ((num_bytes_loaded == -1) or ((num_bytes_loaded % 4) != 0)) {
+    throw std::runtime_error("Opened KITTI pointcloud binary file is incorrectly formatted: " + std::string{file});
+  }
+
+  size_t const num_points{static_cast<size_t>(num_bytes_loaded) / 16};  // each point (xyzi) is 16 bytes
+
+  file_stream.seekg(0, std::ios::beg);
+  file_stream.read(reinterpret_cast<char *>(data_), num_bytes_loaded);
+  file_stream.close();
+
+  // Because the the value of `data_` itself never changes, we could just intitilaize the `data_pointers` once and write
+  // a `Reset` method to set them back to the to start after each new pointcloud is processed. But I think it is also
+  // appropriate to just locally initialize it each time here, rather than making sure to call `Reset()` after every
+  // pointcloud is loaded and processed.
+  PclPointers data_pointers{data_};
+
+  Pointcloud pointcloud{Eigen::MatrixX4d(num_points, 4)};
+  VectorXd intensities{VectorXd(num_points)};
+  for (size_t i{0}; i < num_points; ++i) {
+    pointcloud.row(i)(0) = *(data_pointers.x);
+    pointcloud.row(i)(1) = *(data_pointers.y);
+    pointcloud.row(i)(2) = *(data_pointers.z);
     pointcloud.row(i)(3) = 1.0;  // homogenous component
 
-    intensities(i) = *pr;
+    intensities(i) = *(data_pointers.i);
 
-    px += 4;
-    py += 4;
-    pz += 4;
-    pr += 4;
+    data_pointers.Increment();
   }
-  fclose(stream);
 
   return {pointcloud, intensities};
 }
+
+////////////////////////////////////////////
 
 LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
   // load the time stamps - start, middle and end of the scan - cameras are
@@ -143,8 +157,16 @@ LidarScan LoadLidarScan(Path const folder, size_t const frame_id) {
   Time const middle_time{LoadTimeStamp(middle_timestamp_file, frame_id)};
   Time const end_time{LoadTimeStamp(end_timestamp_file, frame_id)};
 
+  // Ok honestly this is not the original vision for how I planned to use the `KittiPclLoader`. I had a the vision that
+  // we would create it once, allocate it's resources, and then loade all the pointclouds using that same resource using
+  // the `LoadPointcloud()` method. But right now, because the way the loader is designed to work exclusively in a
+  // "frame wise" functional fashion, with no state, we actually need to construct the handler object each time.
+  //
+  // TODO(jack): design the loading method so that `KittiPclLoader` doesn't need to be reconstructed every time.
+  KittiPclLoader pcl_loader_handler;
   Path const pointcloud_file(folder / Path("velodyne_points/data/" + IdToZeroPaddedString(frame_id) + ".bin"));
-  auto const [pointcloud, intensities] = LoadPointcloud(pointcloud_file);
+  auto const [pointcloud, intensities] = pcl_loader_handler.LoadPointcloud(pointcloud_file);
+
   VectorXd const timestamps{GetPseudoTimeStamps(pointcloud, start_time, end_time)};
 
   return LidarScan{start_time, middle_time, end_time, pointcloud, intensities, timestamps};

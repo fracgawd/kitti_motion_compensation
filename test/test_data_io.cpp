@@ -122,14 +122,15 @@ TEST(DataIoTest, SavePointcloud) {
 
   // read the pointcloud back in and run the same test we did above for the
   // LoadPointcloud function to make sure the points are the same
+  KittiPclLoader pcl_loader_handler;
   kmc::Path const pointcloud_file(output_path / kmc::Path(kmc::IdToZeroPaddedString(frame_id) + ".bin"));
-  auto const [cloud, intensities] = kmc::LoadPointcloud(pointcloud_file);
+  auto const [pointcloud, intensities] = pcl_loader_handler.LoadPointcloud(pointcloud_file);
 
-  ASSERT_EQ(cloud.rows(), 123397);
+  ASSERT_EQ(pointcloud.rows(), 123397);
   ASSERT_EQ(intensities.rows(), 123397);
 
   size_t const i1{0};
-  auto const point_1{cloud.row(i1)};
+  auto const point_1{pointcloud.row(i1)};
   ASSERT_FLOAT_EQ(point_1(0), 22.7189998626709);
   ASSERT_FLOAT_EQ(point_1(1), 0.0309999994933605);
   ASSERT_FLOAT_EQ(point_1(2), 0.976999998092651);
@@ -137,7 +138,7 @@ TEST(DataIoTest, SavePointcloud) {
   ASSERT_FLOAT_EQ(intensities(i1), 0.319999992847443);
 
   size_t const i2{123396};
-  auto const point_n{cloud.row(i2)};
+  auto const point_n{pointcloud.row(i2)};
   ASSERT_FLOAT_EQ(point_n(0), 5.63399982452393);
   ASSERT_FLOAT_EQ(point_n(1), -1.39499998092651);
   ASSERT_FLOAT_EQ(point_n(2), -2.58999991416931);
