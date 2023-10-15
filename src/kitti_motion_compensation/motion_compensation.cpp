@@ -12,7 +12,7 @@ double ScaledTimeDisplacment(Time const query_time, Time const anchor_time, Time
     exit(-1);
   }
 
-  return ((anchor_time - query_time) / (max_time - min_time));
+  return ((query_time - anchor_time) / (max_time - min_time));
 }
 
 Vector4d MotionCompensatePoint(Vector4d const& point, Twist const& delta_pose, double const x) {

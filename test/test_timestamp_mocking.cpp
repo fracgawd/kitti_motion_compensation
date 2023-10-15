@@ -31,9 +31,9 @@ Frame MakeMotionCompensationTestFrame() {
 
   // represent Scan(1)
   Pointcloud cloud_1 = MatrixX4d(3, 4);
-  cloud_1.row(0) = Vector4d{0.0, -5.0, 0.0, 1.0};
+  cloud_1.row(0) = Vector4d{0.0, 5.0, 0.0, 1.0};
   cloud_1.row(1) = Vector4d{5.0, 0.0, 0.0, 1.0};
-  cloud_1.row(2) = Vector4d{0.0, 5.0, 0.0, 1.0};
+  cloud_1.row(2) = Vector4d{0.0, -5.0, 0.0, 1.0};
 
   Time const stamp_start{Time(0.1)};
   Time const stamp_middle{Time(0.15)};

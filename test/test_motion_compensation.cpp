@@ -33,9 +33,9 @@ Frame MakeMotionCompensationTestFrame() {
 
   // represent Scan(1)
   Pointcloud cloud_1 = MatrixX4d(3, 4);
-  cloud_1.row(0) = Vector4d{0.0, -5.0, 0.0, 1.0};
+  cloud_1.row(0) = Vector4d{0.0, 5.0, 0.0, 1.0};
   cloud_1.row(1) = Vector4d{5.0, 0.0, 0.0, 1.0};
-  cloud_1.row(2) = Vector4d{0.0, 5.0, 0.0, 1.0};
+  cloud_1.row(2) = Vector4d{0.0, -5.0, 0.0, 1.0};
 
   Time const stamp_start{Time(0.1)};
   Time const stamp_middle{Time(0.15)};
@@ -62,22 +62,22 @@ TEST(ScaledTimeDisplacmentTest, XXX) {
 
   Time point_i_time{0.125};
   double const x0{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
-  ASSERT_FLOAT_EQ(x0, 0.25);
+  ASSERT_FLOAT_EQ(x0, -0.25);
 
   point_i_time = 0.175;
   double const x1{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
-  ASSERT_FLOAT_EQ(x1, -0.25);
+  ASSERT_FLOAT_EQ(x1, 0.25);
 
   // Change the anchor time now so it isn't centered in the middle
   anchor_time = test_frame.scan.stamp_middle + 0.025;
 
   point_i_time = 0.125;  // the query time simulate the individual point times
   double const x2{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
-  ASSERT_FLOAT_EQ(x2, 0.50);
+  ASSERT_FLOAT_EQ(x2, -0.50);
 
   point_i_time = 0.2;  // the query time simulate the individual point times
   double const x3{ScaledTimeDisplacment(point_i_time, anchor_time, scan_start, scan_end)};
-  ASSERT_FLOAT_EQ(x3, -0.25);
+  ASSERT_FLOAT_EQ(x3, 0.25);
 }
 
 TEST(MotionCompensationTest, XXX) {
@@ -87,8 +87,8 @@ TEST(MotionCompensationTest, XXX) {
   Pointcloud const motion_compensated_cloud{MotionCompensateFrame(test_frame, requested_time)};
 
   Vector4d const point_1{motion_compensated_cloud.row(0)};
-  ASSERT_FLOAT_EQ(point_1(0), 0.27829874);
-  ASSERT_FLOAT_EQ(point_1(1), -5.0);
+  ASSERT_FLOAT_EQ(point_1(0), -0.27829874);
+  ASSERT_FLOAT_EQ(point_1(1), 5.0);
   ASSERT_FLOAT_EQ(point_1(2), 0.0);
   ASSERT_FLOAT_EQ(point_1(3), 1.0);
 
@@ -99,8 +99,8 @@ TEST(MotionCompensationTest, XXX) {
   ASSERT_FLOAT_EQ(point_2(3), test_frame.scan.cloud.row(1)(3));
 
   Vector4d const point_3{motion_compensated_cloud.row(2)};
-  ASSERT_FLOAT_EQ(point_3(0), -0.27829874);
-  ASSERT_FLOAT_EQ(point_3(1), 5.0);
+  ASSERT_FLOAT_EQ(point_3(0), 0.27829874);
+  ASSERT_FLOAT_EQ(point_3(1), -5.0);
   ASSERT_FLOAT_EQ(point_3(2), 0.0);
   ASSERT_FLOAT_EQ(point_3(3), 1.0);
 }

@@ -43,7 +43,7 @@ double FractionOfScanCompleted(Eigen::Vector4d const point) {
   // This function is my best attempt of getting the temporal position of each
   // point within the scan with the means at my disposal :)
 
-  return (M_PI + std::atan2(point(1), point(0))) / (2.0 * M_PI);
+  return (M_PI - std::atan2(point(1), point(0))) / (2.0 * M_PI);
 }
 
 Time GetPseudoTimeStamp(Eigen::Vector4d const point, Time const scan_start, Time const scan_end) {
