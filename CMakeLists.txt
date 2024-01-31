@@ -4,6 +4,7 @@ project(kitti_motion_compensation)
 # some configurationfor general compiler settings #
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS -O3)
+set(BUILD_TESTING ON)
 add_compile_options(-Wall -Wextra -pedantic -Werror -Wl,--fatal-warnings)
 
 # find packages we need #
@@ -25,6 +26,7 @@ set(SRC_FILES
     src/${PROJECT_NAME}/camera_model.cpp
     src/${PROJECT_NAME}/handlers.cpp
     src/${PROJECT_NAME}/lie_algebra.cpp
+    src/${PROJECT_NAME}/trajectory_interpolation.cpp
     )
 
 # compile stuff in the core library #
@@ -52,17 +54,23 @@ foreach(EXAMPLE IN LISTS EXAMPLES)
     target_link_libraries(${EXAMPLE} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
 endforeach()
 
-# compile tests
-set(TESTS
-    test_data_io
-    test_motion_compensation
-    test_oxts_to_pose 
-    test_lie_algebra
-    test_timestamp_mocking
-)
+if(BUILD_TESTING)
+    enable_testing()
+    include(CTest)
 
-foreach(TEST IN LISTS TESTS)
-    add_executable(${TEST} test/${TEST}.cpp)
-    target_include_directories(${TEST} PRIVATE ${GTEST_INCLUDE_DIRS})
-    target_link_libraries(${TEST} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-endforeach()
+    set(TESTS
+        test_data_io
+        test_motion_compensation
+        test_oxts_to_pose 
+        test_lie_algebra
+        test_timestamp_mocking
+        test_trajectory_interpolation
+    )
+
+    foreach(TEST IN LISTS TESTS)
+        add_executable(${TEST} test/${TEST}.cpp)
+        target_include_directories(${TEST} PRIVATE ${GTEST_INCLUDE_DIRS})
+        target_link_libraries(${TEST} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+        add_test(NAME ${TEST} COMMAND ${TEST})
+    endforeach()
+endif()

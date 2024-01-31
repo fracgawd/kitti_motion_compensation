@@ -2,7 +2,6 @@
 
 #include "kitti_motion_compensation/data_io.hpp"
 #include "kitti_motion_compensation/data_types.hpp"
-#include "kitti_motion_compensation/lie_algebra.hpp"
 #include "kitti_motion_compensation/motion_compensation.hpp"
 #include "kitti_motion_compensation/timestamp_mocking.hpp"
 
@@ -41,8 +40,8 @@ Frame MakeMotionCompensationTestFrame() {
   Time const stamp_middle{Time(0.15)};
   Time const stamp_end{Time(0.2)};
 
-  VectorXd const timestamps_1 = GetPseudoTimeStamps(cloud_1, stamp_start, stamp_end);
-  VectorXd const intensities_1 = VectorXd(3);
+  VectorXd const timestamps_1{GetPseudoTimeStamps(cloud_1, stamp_start, stamp_end)};
+  VectorXd const intensities_1{VectorXd(3)};
 
   LidarScan const scan_1{stamp_start, stamp_middle, stamp_end, cloud_1, intensities_1, timestamps_1};
 

@@ -22,26 +22,26 @@ Eigen::Vector3d Vee(Eigen::Matrix3d const& a) { return Eigen::Vector3d{a(2, 1), 
 Eigen::Matrix3d Exp(Eigen::Vector3d const& phi) {
   double const angle{phi.norm()};
 
-  // use first order taylor expansion when phi is small
   if (angle < 1e-6) {
-    return (Eigen::Matrix3d::Identity() + Hat(phi));
+    // use first order taylor expansion when phi is small
+    return Eigen::Matrix3d::Identity() + Hat(phi);
   }
 
   Eigen::Vector3d const axis{phi / angle};
-  double const c{std::cos(angle)};
-  double const s{std::sin(angle)};
+  double const cos{std::cos(angle)};
+  double const sin{std::sin(angle)};
 
-  return ((c * Eigen::Matrix3d::Identity()) + ((1.0 - c) * axis * axis.transpose()) + (s * Hat(axis)));
+  return ((cos * Eigen::Matrix3d::Identity()) + ((1.0 - cos) * axis * axis.transpose()) + (sin * Hat(axis)));
 }
 
 Eigen::Vector3d Log(Eigen::Matrix3d const& R) {
-  double c{(0.5 * R.trace()) - 0.5};
-  c = std::clamp(c, -1.0, 1.0);
+  double cos{(0.5 * R.trace()) - 0.5};
+  cos = std::clamp(cos, -1.0, 1.0);
 
-  double const angle{std::acos(c)};
+  double const angle{std::acos(cos)};
 
-  // use first order taylor expansion when angle is small
   if (angle < 1e-6) {
+    // use first order taylor expansion when angle is small
     return Vee(R - Eigen::Matrix3d::Identity());
   }
 
@@ -51,24 +51,24 @@ Eigen::Vector3d Log(Eigen::Matrix3d const& R) {
 Eigen::Matrix3d LeftJacobian(Eigen::Vector3d const& phi) {
   double const angle{phi.norm()};
 
-  // use first order taylor expansion when phi is small
   if (angle < 1e-6) {
+    // use first order taylor expansion when phi is small
     return (Eigen::Matrix3d::Identity() + (0.5 * Hat(phi)));
   }
 
   Eigen::Vector3d const axis{phi / angle};
-  double const c{std::cos(angle)};
-  double const s{std::sin(angle)};
+  double const cos{std::cos(angle)};
+  double const sin{std::sin(angle)};
 
-  return (((s / angle) * Eigen::Matrix3d::Identity()) + ((1.0 - (s / angle)) * (axis * axis.transpose())) +
-          (((1 - c) / angle) * Hat(axis)));
+  return (((sin / angle) * Eigen::Matrix3d::Identity()) + ((1.0 - (sin / angle)) * (axis * axis.transpose())) +
+          (((1 - cos) / angle) * Hat(axis)));
 }
 
 Eigen::Matrix3d InverseLeftJacobian(Eigen::Vector3d const& phi) {
   double const angle{phi.norm()};
 
-  // use first order taylor expansion when phi is small
   if (angle < 1e-6) {
+    // use first order taylor expansion when phi is small
     return (Eigen::Matrix3d::Identity() - (0.5 * Hat(phi)));
   }
 
@@ -103,16 +103,3 @@ Twist Log(Eigen::Affine3d const& T) {
 }
 
 }  // namespace kmc::lie
-
-namespace kmc {
-// TODO(jack): test all the lie algebra handlers
-
-Twist DeltaPose(Affine3d const& pose_0, Affine3d const& pose_1) { return lie::Log(pose_0.inverse() * pose_1); }
-
-Affine3d InterpolatedPose(Twist const& delta_pose, double const x) {
-  Twist const delta_pose_x{x * delta_pose};  // se3
-
-  return lie::Exp(delta_pose_x);  // SE3
-}
-
-}  // namespace kmc

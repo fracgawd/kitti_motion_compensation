@@ -1,6 +1,6 @@
 #include "kitti_motion_compensation/motion_compensation.hpp"
 
-#include "kitti_motion_compensation/lie_algebra.hpp"
+#include "kitti_motion_compensation/trajectory_interpolation.hpp"
 
 namespace kmc {
 

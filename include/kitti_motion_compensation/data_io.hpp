@@ -90,10 +90,6 @@ Image LoadImage(Path const folder, std::string const camera, size_t const frame_
 
 Images LoadImages(Path const folder, size_t const frame_id);
 
-Affine3d InterpolatePose(Affine3d const &pose_0, Affine3d const &pose_1, double const x);
-
-Affine3d InterpolateFramePose(kmc::Oxts const &odometry_0, kmc::Oxts const &odometry_1, kmc::Time requested_time);
-
 Frame MakeFrame(kmc::Oxts const &odometry_n_m_1, kmc::Oxts const &odometry_n, kmc::Oxts const &odometry_n_p_1,
                 kmc::LidarScan const &lidar_scan, std::optional<kmc::Images> const camera_images = std::nullopt);
 
