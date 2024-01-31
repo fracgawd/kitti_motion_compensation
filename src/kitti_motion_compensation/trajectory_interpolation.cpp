@@ -6,6 +6,9 @@
 #include "kitti_motion_compensation/data_types.hpp"
 #include "kitti_motion_compensation/lie_algebra.hpp"
 
+#undef NDEBUG  // keep asserts in release mode
+#include <cassert>
+
 namespace kmc {
 
 // TODO(jack): test all the lie algebra handlers
@@ -55,3 +58,31 @@ Affine3d InterpolateFramePose(Oxts const &odometry_0, Oxts const &odometry_1, Ti
 }
 
 }  // namespace kmc
+
+namespace kmc::trajectory_interpolation {
+
+TrajectoryInterpolator::TrajectoryInterpolator(Oxts const &odometry_0, Oxts const &odometry_1)
+    : time_0_{odometry_0.stamp},
+      pose_0_{OxtsToPose(odometry_0)},
+      time_1_{odometry_1.stamp},
+      pose_1_{OxtsToPose(odometry_1)} {}
+
+Affine3d TrajectoryInterpolator::GetPoseAtTime(Time const time) const {
+  assert(TimeIsInRange(time) and "You gave a time outside of the two poses you wanted to interpolate between :(");
+
+  // TODO(jack): make interpretable :)
+  Twist const f{lie::Log(pose_0_.inverse() * pose_1_)};
+  double const x{FractionOfTrajectory(time)};
+  Twist const f_x{x * f};
+  Affine3d const T_x{lie::Exp(f_x)};
+
+  return pose_0_ * T_x;
+}
+
+bool TrajectoryInterpolator::TimeIsInRange(Time const time) const { return (time >= time_0_) and (time <= time_1_); }
+
+double TrajectoryInterpolator::FractionOfTrajectory(Time const time) const {
+  return (time - time_0_) / (time_1_ - time_0_);
+}
+
+}  // namespace kmc::trajectory_interpolation
