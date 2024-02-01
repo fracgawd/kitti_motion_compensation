@@ -30,7 +30,8 @@ void MotionCompensateRun(Path const run_folder) {
     fs::create_directory(data_folder);
   }
 
-  for (size_t i{0}; i < number_of_frames; ++i) {
+  // TODO(jack): handle loading the sequence and the first and last frame
+  for (size_t i{1}; i < number_of_frames - 1; ++i) {
     Frame const frame{LoadSingleFrame(run_folder, i)};
 
     // TODO(jack): it logically makes most sense to motion compensate each cloud
@@ -56,7 +57,8 @@ void GenerateProjectionVisualizationOfRun(viz::CameraCalibrations const camera_c
 
   viz::MakeOutputImageFolders(output_folder);
 
-  for (size_t i{0}; i < number_of_frames; ++i) {
+  // TODO(jack): handle loading the sequence and the first and last frame
+  for (size_t i{1}; i < number_of_frames - 1; ++i) {
     // load the frame and project the raw pointcloud
     Frame frame{LoadSingleFrame(run_folder, i, true)};
     Images const projected_imgs_raw{viz::ProjectPointcloudOnFrame(frame, camera_calibrations, lidar_extrinsics)};

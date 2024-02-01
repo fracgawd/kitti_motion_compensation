@@ -10,6 +10,9 @@
 #include "kitti_motion_compensation/trajectory_interpolation.hpp"
 #include "kitti_motion_compensation/utils.hpp"
 
+#undef NDEBUG  // keep asserts in release mode
+#include <cassert>
+
 namespace kmc {
 
 Time LoadTimeStamp(Path const timestamp_file, size_t const frame_id) {
@@ -269,8 +272,10 @@ Frame MakeFrame(kmc::Oxts const &odometry_n_m_1, kmc::Oxts const &odometry_n, km
   // between the nearest odometry measurements. For the start of the scan that will be "n-1" and "n" and for the end of
   // the scan that will be "n" and "n+1".
 
-  Affine3d const scan_start_pose{InterpolateFramePose(odometry_n_m_1, odometry_n, lidar_scan.stamp_start)};
-  Affine3d const scan_end_pose{InterpolateFramePose(odometry_n, odometry_n_p_1, lidar_scan.stamp_end)};
+  Affine3d const scan_start_pose{
+      trajectory_interpolation::InterpolateTrajectory(odometry_n_m_1, odometry_n, lidar_scan.stamp_start)};
+  Affine3d const scan_end_pose{
+      trajectory_interpolation::InterpolateTrajectory(odometry_n, odometry_n_p_1, lidar_scan.stamp_end)};
 
   return Frame(scan_start_pose, scan_end_pose, lidar_scan, camera_images);
 }

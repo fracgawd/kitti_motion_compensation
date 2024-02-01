@@ -40,7 +40,7 @@ TEST(DataIoTest, LoadOdometryImproperly) {
 
 TEST(DataIoTest, LoadPointCloudProperly) {
   kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
-  size_t const frame_id{0};
+  size_t const frame_id{1};
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
 
@@ -79,8 +79,10 @@ TEST(DataIoTest, LoadPointCloudProperly) {
 }
 
 TEST(DataIoTest, LoadImagesOptional) {
+  // TODO(jack): this test should fail if we set the frame_id to 1 or 2, cause there are no images to load, but is does
+  // not fail :()
   kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
-  size_t const frame_id{0};
+  size_t const frame_id{1};
   bool load_images{false};
 
   // load and test a frame without images

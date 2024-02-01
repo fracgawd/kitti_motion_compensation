@@ -26,11 +26,11 @@ TEST(LieAlgebraTest, So3LeftJacobiansInverse) {
   Eigen::Matrix3d const left_jacobain{kmc::lie::LeftJacobian(phi_in)};
   Eigen::Matrix3d const inverse_left_jacobain{kmc::lie::InverseLeftJacobian(phi_in)};
 
-  auto const i{left_jacobain * inverse_left_jacobain};
-
+  // TODO(jack): add helper function for this for the testing
   // check that (value*value_inv) is an identity matrix
-  ASSERT_FLOAT_EQ(i.trace(), 3.0);
-  ASSERT_FLOAT_EQ(i.sum() - i.trace(), 0.0);
+  auto const I{left_jacobain * inverse_left_jacobain};
+  ASSERT_FLOAT_EQ(I.trace(), 3.0);
+  ASSERT_FLOAT_EQ(I.sum() - I.trace(), 0.0);
 }
 
 TEST(LieAlgebraTest, Se3LogAndExpInverse) {
