@@ -10,7 +10,7 @@ using namespace kmc;
 class TrajectoryInterpolationFixtureRealOdometry : public ::testing::Test {
  protected:
   void SetUp() {
-    Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+    Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
 
     odometry_0_ = LoadOxts(data_folder, 0).value();
     odometry_1_ = LoadOxts(data_folder, 1).value();

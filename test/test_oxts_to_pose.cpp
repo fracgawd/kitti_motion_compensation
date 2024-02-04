@@ -6,7 +6,7 @@
 using namespace kmc;
 
 TEST(OxtsToPoseTest, LoadKnownPoseProperly) {
-  Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
 
   std::optional<Oxts> const oxts{LoadOxts(data_folder, frame_id)};

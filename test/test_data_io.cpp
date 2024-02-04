@@ -30,7 +30,7 @@ TEST(DataIoTest, LoadOdometryProperly) {
 }
 
 TEST(DataIoTest, LoadOdometryImproperly) {
-  Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{4};
 
   std::optional<Oxts> const odometry_opt{kmc::LoadOxts(data_folder, frame_id)};
@@ -39,7 +39,7 @@ TEST(DataIoTest, LoadOdometryImproperly) {
 }
 
 TEST(DataIoTest, LoadPointCloudProperly) {
-  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{1};
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
@@ -81,7 +81,7 @@ TEST(DataIoTest, LoadPointCloudProperly) {
 TEST(DataIoTest, LoadImagesOptional) {
   // TODO(jack): this test should fail if we set the frame_id to 1 or 2, cause there are no images to load, but is does
   // not fail :()
-  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{1};
   bool load_images{false};
 
@@ -98,7 +98,7 @@ TEST(DataIoTest, LoadImagesOptional) {
 }
 
 TEST(DataIoTest, LoadImagesProperly) {
-  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
 
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id, true)};
@@ -114,7 +114,7 @@ TEST(DataIoTest, LoadImagesProperly) {
 
 TEST(DataIoTest, SavePointcloud) {
   // load the test frame from the assets folder
-  kmc::Path const data_folder{"../assets/2011_09_26/2011_09_26_drive_0005_sync"};
+  kmc::Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
   size_t const frame_id{0};
   kmc::Frame const frame{kmc::LoadSingleFrame(data_folder, frame_id)};
 
