@@ -78,8 +78,8 @@ Install the following packages.
 
 Run the following build commands.
 
-    cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
-    cmake --build build
+    cmake -B build/ -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
+    cmake --build build/
 
 Run the tests just to make sure everything works as expected.
 
