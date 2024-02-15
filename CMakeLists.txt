@@ -24,9 +24,7 @@ set(SRC_FILES
     src/${PROJECT_NAME}/utils.cpp
     )
 
-add_library(
-    ${PROJECT_NAME}_lib
-    SHARED
+add_library(${PROJECT_NAME}_lib SHARED
     ${SRC_FILES}
 )
 
@@ -49,9 +47,13 @@ if(BUILD_EXAMPLES)
 
     foreach(EXAMPLE IN LISTS EXAMPLES)
         add_executable(${EXAMPLE} examples/${EXAMPLE}.cpp)
-        target_include_directories(${EXAMPLE} PRIVATE include)
-        # TODO(jack): remove opencv_libs
-        target_link_libraries(${EXAMPLE} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS})
+        target_include_directories(${EXAMPLE} PRIVATE 
+            include
+        )
+        target_link_libraries(${EXAMPLE} PRIVATE 
+            ${PROJECT_NAME}_lib 
+            ${OpenCV_LIBS}
+        )
     endforeach()
 endif()
 
@@ -70,8 +72,16 @@ if(BUILD_TESTING)
 
     foreach(TEST IN LISTS TESTS)
         add_executable(${TEST} test/${TEST}.cpp)
-        target_include_directories(${TEST} PRIVATE include ${GTEST_INCLUDE_DIRS})
-        target_link_libraries(${TEST} PRIVATE ${PROJECT_NAME}_lib ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+        target_include_directories(${TEST} PRIVATE 
+            include 
+            ${GTEST_INCLUDE_DIRS}
+        )
+        target_link_libraries(${TEST} PRIVATE 
+            ${PROJECT_NAME}_lib 
+            ${OpenCV_LIBS} 
+            ${GTEST_LIBRARIES} 
+            pthread
+        )
         add_test(NAME ${TEST} COMMAND ${TEST})
     endforeach()
 endif()

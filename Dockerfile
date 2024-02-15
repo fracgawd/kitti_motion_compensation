@@ -25,7 +25,7 @@ COPY testing_assets/ /work_zone/testing_assets/
 
 RUN cd /work_zone/build/ && cmake -DBUILD_TESTING=ON .. && make && ctest
 
-FROM build-library AS build-and-run-examples
+FROM build-library AS build-examples
 
 COPY --from=build-library /work_zone/build/ /work_zone/build/
 COPY include/ /work_zone/include/
