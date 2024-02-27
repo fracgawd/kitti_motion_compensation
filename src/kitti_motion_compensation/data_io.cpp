@@ -34,19 +34,12 @@ Time LoadTimeStamp(Path const timestamp_file, size_t const frame_id) {
   return Time(MmHhSsToSeconds(stamp_i_tokens[1]));
 }
 
-std::optional<Oxts> LoadOxts(Path const folder, size_t const frame_id) {
-  // WARN(jack): This function is really not great. The problem is that it essentially decides if the `frame_id` is
-  // valid based on the ability of the oxts input stream to be opened. This hopefully will not work when the `frame_id`
-  // requests a frame that is not in the sequence. This really does happen all the time, and it works, but it is a
-  // brittle solution.
-  // An example of this brittleness is that the timestamp loading part had to be moved after the odometry loading part.
-  // The reason for this was that we need the early std::nullopt return to protect the `LoadTimeStamp` function from
-  // getting an invalid `frame_id`, because that function is not hardened against invalid frame ids. The real answer to
-  // the problem I am talking about to much is to harden all functions against invalid id access, but this would add a
-  // lot of boilerplate and complexity. The KITTI is so well structured, that I will provide what security I can, but I
-  // also need to count on the fact that people will use the functins within some limit of sanity.
+Oxts LoadOxts(Path const folder, size_t const frame_id) {
+  // load the time stamp
+  Path const timestamp_file(folder / Path("oxts/timestamps.txt"));
+  Time const time{LoadTimeStamp(timestamp_file, frame_id)};
 
-  // load the odometry
+  // load the oxts
   Path const oxts_file(folder / Path("oxts/data/" + IdToZeroPaddedString(frame_id) + ".txt"));
   std::ifstream is_oxts(oxts_file);  // "is" = "input stream"
 
@@ -55,13 +48,8 @@ std::optional<Oxts> LoadOxts(Path const folder, size_t const frame_id) {
     std::getline(is_oxts, oxts_line);
     is_oxts.close();
   } else {
-    std::cerr << "Failed to open oxts file: " << oxts_file << '\n';
-    return std::nullopt;
+    throw std::runtime_error("The Oxts file you tried to load did not open: " + oxts_file.string());
   }
-
-  // load the time stamp
-  Path const timestamp_file(folder / Path("oxts/timestamps.txt"));
-  Time const time{LoadTimeStamp(timestamp_file, frame_id)};
 
   std::vector<std::string> const oxts_tokens{TokenizeString(oxts_line)};
 
@@ -281,44 +269,13 @@ Frame MakeFrame(kmc::Oxts const &odometry_n_m_1, kmc::Oxts const &odometry_n, km
 }
 
 Frame LoadSingleFrame(Path const data_folder, size_t const frame_id, bool const load_images) {
-  // TODO(jack): what about const with std::optional
-  // TODO(jack): are the statements about which part of the cloud can and cannot be motion compensated correct?
-  // TODO(jack): refactor the odometry loading thing into its own helper function
-
   std::array<Oxts, 3> odometry;
   for (int i{-1}; i <= 1; ++i) {
-    // TODO(jack): use fancy "if with initializtion"
-    std::optional<Oxts> odometry_i{LoadOxts(data_folder, frame_id + i)};
-
-    if (odometry_i.has_value()) {
-      // For all non-edge frames (1 -> n-1), this is the only condition that should execute.
-      odometry[i + 1] = odometry_i.value();
-    } else if (-1 == i) {
-      // This is the failure that should only happen when we attempt to load the first frame of a sequence. Because
-      // there is no n-1 Oxts packet, we just load the first Oxts packet of the sequence and fill it with that. This
-      // means that the first half of the scan, before the first Oxts packet was recieved, cannot be motion compensated.
-      std::optional<Oxts> odometry_0{LoadOxts(data_folder, frame_id + (i + 1))};
-      if (not odometry_0.has_value()) {
-        std::cerr << "Could not load replacement edge frame (frame(-1)) Oxts packet :()" << std::endl;
-        continue;  // WARN(jack); is continue the right behavior?
-      }
-      odometry[i + 1] = odometry_0.value();
-    } else if (1 == i) {
-      // This is similar to the failure before, except that now we are at the last frame of the sequence, and can only
-      // compensate the first half.
-      std::optional<Oxts> odometry_n{LoadOxts(data_folder, frame_id + (i - 1))};
-      if (not odometry_n.has_value()) {
-        std::cerr << "Could not load replacement edge frame (frame(n+1)) Oxts packet :()" << std::endl;
-        continue;  // WARN(jack); is continue the right behavior?
-      }
-      odometry[i + 1] = odometry_n.value();
-    }
+    odometry[i + 1] = LoadOxts(data_folder, frame_id + i);
   }
 
-  // load scan
   LidarScan const lidar_scan{LoadLidarScan(data_folder, frame_id)};
 
-  // load images if requested and return
   if (load_images) {
     Images const images{LoadImages(data_folder, frame_id)};
     return MakeFrame(odometry[0], odometry[1], odometry[2], lidar_scan, images);
@@ -339,7 +296,7 @@ void WritePointcloud(Path const data_folder, size_t const frame_id, Pointcloud c
   std::ofstream out;
   out.open(pointcloud_file, std::ios::out | std::ios::binary);
 
-  int32_t const num_points = pointcloud.rows();
+  int32_t const num_points{static_cast<int32_t>(pointcloud.rows())};
   for (int32_t i = 0; i < num_points; i++) {
     auto const point = pointcloud.row(i);
     float x{static_cast<float>(point(0))};
@@ -351,6 +308,7 @@ void WritePointcloud(Path const data_folder, size_t const frame_id, Pointcloud c
     x = static_cast<float>(intensities(i));
     out.write(reinterpret_cast<const char *>(&x), sizeof(float));
   }
+
   out.close();
 }
 
@@ -360,70 +318,51 @@ namespace kmc::viz {
 
 namespace fs = std::filesystem;
 
-// Eigen::Vector2d S;
-// Eigen::Matrix3d K;
-// Eigen::Matrix<double, 5, 1> D;
-// Eigen::Matrix3d R;
-// Eigen::Vector3d T;
-// Eigen::Vector2d S_rect;
-// Eigen::Matrix3d R_rect;
 CameraCalibration CalibrationLinesToCalibration(std::vector<std::string> const calibration_lines) {
-  // this is really an unfortunate function but we need to convert the
-  // calibration txt files into eigen matrics somehow :) If someone has a
-  // better idea please let me know.
-
   // S
-  std::vector<std::string> S_tokens{kmc::TokenizeString(calibration_lines[0])};
-
+  std::vector<std::string> const S_tokens{kmc::TokenizeString(calibration_lines[0])};
   Eigen::Vector2d S;
   S << std::stod(S_tokens[1]), std::stod(S_tokens[2]);
 
   // K
-  std::vector<std::string> K_tokens{kmc::TokenizeString(calibration_lines[1])};
-
+  std::vector<std::string> const K_tokens{kmc::TokenizeString(calibration_lines[1])};
   Eigen::Matrix3d K;
   K << std::stod(K_tokens[1]), std::stod(K_tokens[2]), std::stod(K_tokens[3]), std::stod(K_tokens[4]),
       std::stod(K_tokens[5]), std::stod(K_tokens[6]), std::stod(K_tokens[7]), std::stod(K_tokens[8]),
       std::stod(K_tokens[9]);
 
   // D
-  std::vector<std::string> D_tokens{kmc::TokenizeString(calibration_lines[2])};
-
+  std::vector<std::string> const D_tokens{kmc::TokenizeString(calibration_lines[2])};
   Eigen::Matrix<double, 5, 1> D;
   D << std::stod(D_tokens[1]), std::stod(D_tokens[2]), std::stod(D_tokens[3]), std::stod(D_tokens[4]),
       std::stod(D_tokens[5]);
 
   // R
-  std::vector<std::string> R_tokens{kmc::TokenizeString(calibration_lines[3])};
-
+  std::vector<std::string> const R_tokens{kmc::TokenizeString(calibration_lines[3])};
   Eigen::Matrix3d R;
   R << std::stod(R_tokens[1]), std::stod(R_tokens[2]), std::stod(R_tokens[3]), std::stod(R_tokens[4]),
       std::stod(R_tokens[5]), std::stod(R_tokens[6]), std::stod(R_tokens[7]), std::stod(R_tokens[8]),
       std::stod(R_tokens[9]);
 
   // T
-  std::vector<std::string> T_tokens{kmc::TokenizeString(calibration_lines[4])};
-
+  std::vector<std::string> const T_tokens{kmc::TokenizeString(calibration_lines[4])};
   Eigen::Vector3d T;
   T << std::stod(T_tokens[1]), std::stod(T_tokens[2]), std::stod(T_tokens[3]);
 
   // S_rect
-  std::vector<std::string> S_rect_tokens{kmc::TokenizeString(calibration_lines[5])};
-
+  std::vector<std::string> const S_rect_tokens{kmc::TokenizeString(calibration_lines[5])};
   Eigen::Vector2d S_rect;
   S_rect << std::stod(S_rect_tokens[1]), std::stod(S_rect_tokens[2]);
 
   // R_rect
-  std::vector<std::string> R_rect_tokens{kmc::TokenizeString(calibration_lines[6])};
-
+  std::vector<std::string> const R_rect_tokens{kmc::TokenizeString(calibration_lines[6])};
   Eigen::Matrix3d R_rect;
   R_rect << std::stod(R_rect_tokens[1]), std::stod(R_rect_tokens[2]), std::stod(R_rect_tokens[3]),
       std::stod(R_rect_tokens[4]), std::stod(R_rect_tokens[5]), std::stod(R_rect_tokens[6]),
       std::stod(R_rect_tokens[7]), std::stod(R_rect_tokens[8]), std::stod(R_rect_tokens[9]);
 
   // P_rect
-  std::vector<std::string> P_rect_tokens{kmc::TokenizeString(calibration_lines[7])};
-
+  std::vector<std::string> const P_rect_tokens{kmc::TokenizeString(calibration_lines[7])};
   P P_rect;
   P_rect << std::stod(P_rect_tokens[1]), std::stod(P_rect_tokens[2]), std::stod(P_rect_tokens[3]),
       std::stod(P_rect_tokens[4]), std::stod(P_rect_tokens[5]), std::stod(P_rect_tokens[6]),
@@ -451,7 +390,6 @@ CameraCalibrations LoadCameraCalibrations(kmc::Path const data_folder) {
   std::vector<CameraCalibration> camera_calibrations;
   for (size_t n{0}; n < 4; ++n) {
     std::vector<std::string> calibration_lines;
-
     for (size_t i{0}; i < 8; ++i) {
       std::getline(calibration_is, calibration_line);
       calibration_lines.push_back(calibration_line);

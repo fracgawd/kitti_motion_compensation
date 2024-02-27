@@ -64,9 +64,9 @@ class TrajectoryInterpolationFixtureRealOdometry : public ::testing::Test {
   void SetUp() {
     Path const data_folder{"../testing_assets/2011_09_26/2011_09_26_drive_0005_sync"};
 
-    odometry_0_ = LoadOxts(data_folder, 0).value();
-    odometry_1_ = LoadOxts(data_folder, 1).value();
-    odometry_2_ = LoadOxts(data_folder, 2).value();
+    odometry_0_ = LoadOxts(data_folder, 0);
+    odometry_1_ = LoadOxts(data_folder, 1);
+    odometry_2_ = LoadOxts(data_folder, 2);
   }
 
   Oxts odometry_0_;

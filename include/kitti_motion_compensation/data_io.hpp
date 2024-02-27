@@ -8,7 +8,7 @@ namespace kmc {
 
 Time LoadTimeStamp(Path const timestamp_file, size_t const frame_id);
 
-std::optional<Oxts> LoadOxts(Path const folder, size_t const frame_id);
+Oxts LoadOxts(Path const folder, size_t const frame_id);
 
 // Implementation adopted from https://github.com/utiasSTARS/pykitti/blob/master/pykitti/utils.py
 Eigen::Affine3d OxtsToPose(Oxts const &odometry, double const scale = 1.0);

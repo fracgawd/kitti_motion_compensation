@@ -6,6 +6,8 @@ namespace kmc {
 
 std::size_t NumberOfFilesInDirectory(std::filesystem::path path);
 
+void CopyOverUncompensatedFirstAndLastFrame(Path const run_folder);
+
 void MotionCompensateRun(Path const run_folder);
 
 void GenerateProjectionVisualizationOfRun(viz::CameraCalibrations const camera_calibrations,
